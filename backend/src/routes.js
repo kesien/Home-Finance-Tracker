@@ -19,6 +19,7 @@ export function createRouter(svc) {
   r.patch('/categories/:id', (q, res) => res.json(svc.renameCategory(id(q), q.body)));
   r.delete('/categories/:id', (q, res) => (svc.deleteCategory(id(q)), res.status(204).end()));
 
+  r.get('/stats', (_q, res) => res.json(svc.stats()));
   r.get('/months', (_q, res) => res.json(svc.listMonths()));
   r.post('/months', (q, res) => res.status(201).json(svc.createMonth(q.body)));
   r.get('/months/:year/:month', (q, res) => res.json(svc.monthDetail(...ym(q))));

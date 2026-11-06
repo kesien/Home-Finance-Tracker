@@ -180,3 +180,20 @@ describe('robusztus bemenet', () => {
     expect((await post({ paid: 'false' })).status).toBe(400);
   });
 });
+
+describe('statisztika', () => {
+  it('időrendben adja a hónapokat, bevételekkel és kategóriaösszegekkel', async () => {
+    await newMonth(2026, 11);
+    await newMonth(2026, 10);
+    await api.post('/api/months/2026/10/incomes').send({ name: 'Apa fizu', amount: 800000, type: 'fixed' });
+    const rezsi = await catId('Rezsi');
+    await api.post('/api/months/2026/10/expenses').send({ name: 'Villany', amount: 20000, category_id: rezsi });
+    await api.post('/api/months/2026/10/expenses').send({ name: 'Adó', amount: 99000, type: 'yearly', due_year: 2027, due_month: 1 });
+    const r = (await api.get('/api/stats')).body;
+    expect(r.months.map((m) => [m.year, m.month])).toEqual([[2026, 10], [2026, 11]]);
+    expect(r.months[0]).toMatchObject({ totalIncome: 800000, totalExpense: 20000, remaining: 780000 });
+    expect(r.months[0].incomes).toEqual([{ name: 'Apa fizu', amount: 800000 }]);
+    expect(r.months[0].categoryTotals).toEqual({ [rezsi]: 20000 }); // az éves tétel nem számít bele
+    expect(r.categories.length).toBe(11);
+  });
+});

@@ -12,3 +12,7 @@
 ## 2026-11-06
 - Fázis 2 mergelve (3 review kör után).
 - Fázis 3: hónaplista, új hónap létrehozása, hónapok összehasonlítása, előjeles egyenlegmezők.
+
+## 2026-11-06
+- Fázis 3 mergelve.
+- Fázis 4: főoldal kártyákkal és közelgő kiadásokkal, `/api/stats`, havi trend, bevételi összetétel és kategória diagramok.

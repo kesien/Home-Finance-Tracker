@@ -94,3 +94,4 @@ fieldset { border: 1px solid var(--line); border-radius: 8px; color: var(--muted
 .compare-pick { margin: 0.5rem 0; }
 @media (max-width: 520px) { .cmp .num { min-width: 0; font-size: 0.78rem; } }
 .form.row { flex-direction: row; align-items: flex-end; margin-top: 0; }
+.chart { width: 100%; min-width: 0; }
