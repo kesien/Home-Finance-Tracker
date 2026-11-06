@@ -1,23 +1,25 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import express from 'express';
 import { openDb } from './db.js';
 import { createApp } from './app.js';
 
+const here = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT ?? 3000);
-const dbFile = process.env.DB_FILE ?? path.resolve('data/finance.db');
-const staticDir =
-  process.env.STATIC_DIR ??
-  path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../frontend/dist');
+const dbFile = process.env.DB_FILE ?? path.resolve(here, '../../data/finance.db');
+const staticDir = process.env.STATIC_DIR ?? path.resolve(here, '../../frontend/dist');
 
 const db = openDb(dbFile);
-const app = createApp({ db });
+const server = createApp({ db, staticDir }).listen(port, '0.0.0.0', () =>
+  console.log(`Szerver: http://0.0.0.0:${port}`),
+);
 
-// Production: a buildelt frontendet ugyanaz a szerver szolgálja ki (SPA fallback).
-if (fs.existsSync(staticDir)) {
-  app.use(express.static(staticDir));
-  app.get(/^(?!\/api).*/, (_req, res) => res.sendFile(path.join(staticDir, 'index.html')));
+// Szabályos leállítás (docker stop): szerver és DB lezárása, hogy a WAL checkpoint megtörténjen.
+function shutdown() {
+  server.close(() => {
+    db.close();
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 5000).unref();
 }
-
-app.listen(port, '0.0.0.0', () => console.log(`Szerver: http://0.0.0.0:${port}`));
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

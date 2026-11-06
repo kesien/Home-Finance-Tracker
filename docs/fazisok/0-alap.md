@@ -11,3 +11,6 @@
 
 ## Hiányosság
 - A Docker image buildet ebben a környezetben nem lehetett lefuttatni (nincs Docker daemon); a Fázis 7-ben, valódi Docker-es gépen ellenőrizendő.
+
+## Review 1. kör után
+- `.dockerignore` (`**/node_modules`), többlépcsős Dockerfile (build → slim futtató image), compose `healthcheck`, SIGTERM/SIGINT kezelés (DB lezárás), statikus kiszolgálás és `/api` 404 az `app.js`-ben tesztelve, frontend smoke teszt, `engines`/`.nvmrc`.
