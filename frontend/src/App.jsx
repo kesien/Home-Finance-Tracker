@@ -3,6 +3,7 @@ import MonthPage from './pages/MonthPage.jsx';
 import MonthsPage from './pages/MonthsPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import StatsPage from './pages/StatsPage.jsx';
+import ForecastPage from './pages/ForecastPage.jsx';
 import CategoriesPage from './pages/CategoriesPage.jsx';
 import Placeholder from './pages/Placeholder.jsx';
 
@@ -36,7 +37,7 @@ export default function App() {
             <Route path="/honap/:year/:month" element={<MonthPage />} />
             <Route path="/honapok" element={<MonthsPage />} />
             <Route path="/kategoriak" element={<CategoriesPage />} />
-            <Route path="/elorejelzes" element={<Placeholder title="Előrejelzés" note="Fázis 5." />} />
+            <Route path="/elorejelzes" element={<ForecastPage />} />
             <Route path="/statisztika" element={<StatsPage />} />
             <Route path="/beallitasok" element={<Placeholder title="Beállítások" note="Fázis 6." />} />
             <Route path="*" element={<Navigate to="/" replace />} />

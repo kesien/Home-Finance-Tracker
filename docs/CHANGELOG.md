@@ -16,3 +16,7 @@
 ## 2026-11-06
 - Fázis 3 mergelve.
 - Fázis 4: főoldal kártyákkal és közelgő kiadásokkal, `/api/stats`, havi trend, bevételi összetétel és kategória diagramok.
+
+## 2026-11-06
+- Fázis 4 mergelve.
+- Fázis 5: 12 hónapos előrejelzés (`/api/forecast`), küszöb-figyelmeztetés, vonaldiagram és táblázat.

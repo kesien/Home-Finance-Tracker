@@ -76,3 +76,26 @@ export function itemsToCopy({ incomes, expenses }, year, month) {
       .map((e) => ({ ...e, paid: 0 })),
   };
 }
+
+/**
+ * 12 hónapos előrejelzés az alaphónap (az aktuális hónap) tételeiből.
+ * - kiindulópont: az alaphónap számlán + megtakarítás egyenlege összesen (az alaphónap már benne van)
+ * - bevétel: az alaphónap fix bevételei + a változó bevételek átlaga
+ * - kiadás: az alaphónap kiadásai közül az, ami az adott hónapban `isCounted` (a lejárat nélküli havi
+ *   mindig, a lejárttal a lejáratig, az éves csak az esedékes hónapban) – egyetlen szabály, nincs dupla számlálás
+ */
+export function forecast({ incomes, expenses, startBalance, avgVariableIncome, year, month, threshold = 0, months = 12 }) {
+  const fixedIncome = sum(incomes.filter((i) => i.type === 'fixed'));
+  const income = fixedIncome + avgVariableIncome;
+  const rows = [];
+  let balance = startBalance;
+  let cursor = { year, month };
+  for (let k = 0; k < months; k++) {
+    cursor = nextMonth(cursor.year, cursor.month);
+    const expense = sum(expenses.filter((e) => isCounted(e, cursor.year, cursor.month)));
+    balance += income - expense;
+    rows.push({ year: cursor.year, month: cursor.month, income, expense, change: income - expense, balance, belowThreshold: balance < threshold });
+  }
+  const first = rows.find((r) => r.belowThreshold);
+  return { startBalance, fixedIncome, avgVariableIncome, threshold, rows, firstBelow: first ? { year: first.year, month: first.month } : null };
+}

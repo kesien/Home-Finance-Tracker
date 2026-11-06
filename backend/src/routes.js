@@ -8,7 +8,7 @@ const id = (req) => {
 };
 const ym = (req) => [Number(req.params.year), Number(req.params.month)];
 
-export function createRouter(svc) {
+export function createRouter(svc, now = () => new Date()) {
   const r = Router();
 
   r.get('/settings', (_q, res) => res.json(svc.getSettings()));
@@ -19,6 +19,10 @@ export function createRouter(svc) {
   r.patch('/categories/:id', (q, res) => res.json(svc.renameCategory(id(q), q.body)));
   r.delete('/categories/:id', (q, res) => (svc.deleteCategory(id(q)), res.status(204).end()));
 
+  r.get('/forecast', (q, res) => {
+    const { year, month } = q.query;
+    res.json(svc.forecastFor(now(), year === undefined ? undefined : Number(year), month === undefined ? undefined : Number(month)));
+  });
   r.get('/stats', (_q, res) => res.json(svc.stats()));
   r.get('/months', (_q, res) => res.json(svc.listMonths()));
   r.post('/months', (q, res) => res.status(201).json(svc.createMonth(q.body)));

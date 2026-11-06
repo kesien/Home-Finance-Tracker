@@ -103,3 +103,13 @@ fieldset { border: 1px solid var(--line); border-radius: 8px; color: var(--muted
 .data-table th, .data-table td { text-align: right; padding: 0.3rem 0.4rem; border-bottom: 1px solid var(--line); font-weight: normal; font-variant-numeric: tabular-nums; }
 .data-table th:first-child, .data-table tbody th { text-align: left; color: var(--text); }
 .data-table summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.warn { background: #3a1d22; border: 1px solid var(--neg); color: #ffb4b4; border-radius: 10px; padding: 0.7rem 0.9rem; }
+.okbar { background: #12302a; border: 1px solid var(--pos); color: #a6e9cf; border-radius: 10px; padding: 0.7rem 0.9rem; }
+.table-wrap { overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+table.plain { width: 100%; border-collapse: collapse; font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+table.plain th, table.plain td { padding: 0.5rem 0.7rem; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; font-weight: normal; }
+table.plain thead th { color: var(--muted); }
+table.plain tbody th { text-align: left; }
+table.plain tr.below { background: #3a1d2233; }
+table.plain thead th:first-child { text-align: left; }

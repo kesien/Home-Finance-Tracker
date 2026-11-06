@@ -1,4 +1,4 @@
-import { summarize, averageLastN, itemsToCopy } from './logic.js';
+import { summarize, averageLastN, itemsToCopy, forecast } from './logic.js';
 
 export class HttpError extends Error {
   constructor(status, message) {
@@ -152,6 +152,32 @@ export function createService(db) {
       });
   }
 
+  /**
+   * Előrejelzés. Alaphónap: a megadott, különben a naptári aktuális hónap, ha az nincs létrehozva, a legutolsó létező.
+   * A változó bevétel átlaga az utolsó N hónapból (N a beállításokból) számolódik.
+   */
+  function forecastFor(now, year, month) {
+    let base;
+    if (year != null || month != null) {
+      base = mustMonth(Number(year), Number(month));
+    } else {
+      base = getMonthRow(now.getFullYear(), now.getMonth() + 1) ?? db.prepare('SELECT * FROM months ORDER BY year DESC, month DESC LIMIT 1').get();
+      if (!base) throw notFound('Előrejelzéshez előbb hozz létre egy hónapot');
+    }
+    const { avgN, forecastThreshold } = getSettings();
+    const avg = averageLastN(incomeHistory().map((h) => ({ ...h, value: h.variable })), base.year, base.month, avgN);
+    const result = forecast({
+      incomes: incomesOf(base.id),
+      expenses: expensesOf(base.id),
+      startBalance: base.account_balance + base.savings_balance,
+      avgVariableIncome: avg.average,
+      year: base.year,
+      month: base.month,
+      threshold: forecastThreshold,
+    });
+    return { base: { year: base.year, month: base.month }, avgN, monthsUsed: avg.monthsUsed, ...result };
+  }
+
   /** Statisztikához: minden hónap (időrendben) összesítője, bevételek név szerint, kategóriaösszegek. */
   function stats() {
     const months = db.prepare('SELECT * FROM months ORDER BY year, month').all().map((m) => {
@@ -300,7 +326,7 @@ export function createService(db) {
   return {
     getSettings, updateSettings,
     listCategories, createCategory, renameCategory, deleteCategory,
-    stats, listMonths, monthDetail, createMonth, updateBalances, deleteMonth,
+    forecastFor, stats, listMonths, monthDetail, createMonth, updateBalances, deleteMonth,
     createIncome, updateIncome, deleteIncome,
     createExpense, updateExpense, deleteExpense,
   };
