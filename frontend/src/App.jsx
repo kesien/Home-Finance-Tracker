@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import MonthPage from './pages/MonthPage.jsx';
 import MonthsPage from './pages/MonthsPage.jsx';
+import DashboardPage from './pages/DashboardPage.jsx';
+import StatsPage from './pages/StatsPage.jsx';
 import CategoriesPage from './pages/CategoriesPage.jsx';
 import Placeholder from './pages/Placeholder.jsx';
 
@@ -29,13 +31,13 @@ export default function App() {
         </nav>
         <main className="page">
           <Routes>
-            <Route path="/" element={<Placeholder title="Főoldal" note="A dashboard a következő fázisokban készül." />} />
+            <Route path="/" element={<DashboardPage />} />
             <Route path="/honap" element={<MonthPage />} />
             <Route path="/honap/:year/:month" element={<MonthPage />} />
             <Route path="/honapok" element={<MonthsPage />} />
             <Route path="/kategoriak" element={<CategoriesPage />} />
             <Route path="/elorejelzes" element={<Placeholder title="Előrejelzés" note="Fázis 5." />} />
-            <Route path="/statisztika" element={<Placeholder title="Statisztika" note="Fázis 4." />} />
+            <Route path="/statisztika" element={<StatsPage />} />
             <Route path="/beallitasok" element={<Placeholder title="Beállítások" note="Fázis 6." />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

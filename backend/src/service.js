@@ -152,6 +152,26 @@ export function createService(db) {
       });
   }
 
+  /** Statisztikához: minden hónap (időrendben) összesítője, bevételek név szerint, kategóriaösszegek. */
+  function stats() {
+    const months = db.prepare('SELECT * FROM months ORDER BY year, month').all().map((m) => {
+      const incomes = incomesOf(m.id);
+      const sm = summarize({ incomes, expenses: expensesOf(m.id), year: m.year, month: m.month });
+      return {
+        year: m.year,
+        month: m.month,
+        totalIncome: sm.totalIncome,
+        totalExpense: sm.totalExpense,
+        remaining: sm.remaining,
+        accountBalance: m.account_balance,
+        savingsBalance: m.savings_balance,
+        incomes: incomes.map((i) => ({ name: i.name, amount: i.amount })),
+        categoryTotals: sm.categoryTotals,
+      };
+    });
+    return { months, categories: listCategories().map(({ id, name }) => ({ id, name })) };
+  }
+
   /** Új hónap; ha van korábbi hónap, annak fix tételei másolódnak (egy tranzakcióban). */
   function createMonth(body) {
     const { year, month } = reqBody(body);
@@ -280,7 +300,7 @@ export function createService(db) {
   return {
     getSettings, updateSettings,
     listCategories, createCategory, renameCategory, deleteCategory,
-    listMonths, monthDetail, createMonth, updateBalances, deleteMonth,
+    stats, listMonths, monthDetail, createMonth, updateBalances, deleteMonth,
     createIncome, updateIncome, deleteIncome,
     createExpense, updateExpense, deleteExpense,
   };
