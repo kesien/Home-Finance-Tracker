@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
-import { formatMoney, monthLabel, parseAmount, shiftMonth, categoryColor } from '../format.js';
+import { formatMoney, monthLabel, parseSigned, shiftMonth, categoryColor } from '../format.js';
 import IncomeForm from '../components/IncomeForm.jsx';
 import ExpenseForm from '../components/ExpenseForm.jsx';
 
@@ -11,9 +11,9 @@ function BalanceField({ label, value, onSave }) {
   const [text, setText] = useState(String(value));
   useEffect(() => setText(String(value)), [value]);
   function commit() {
-    const v = parseAmount(text);
+    const v = parseSigned(text);
     if (v === null) return setText(String(value));
-    if (v !== value) onSave(v);
+    if (v !== value) onSave(v).catch(() => setText(String(value))); // hibánál a régi érték áll vissza
   }
   return (
     <label className="card balance">
@@ -38,6 +38,7 @@ export default function MonthPage() {
   const [form, setForm] = useState(null); // {kind:'income'|'expense', item?}
   const [fabOpen, setFabOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const fabRef = useRef(null);
 
   // Csak a legutóbb indított betöltés eredménye érvényes: lassú, korábbi hónap válasza ne írja felül az újat.
   const reqId = useRef(0);
@@ -128,7 +129,18 @@ export default function MonthPage() {
   const catTotals = Object.entries(summary.categoryTotals)
     .map(([id, total]) => ({ id: Number(id), name: catById[id]?.name ?? '?', total }))
     .sort((a, b) => b.total - a.total);
-  const patchBalance = (body) => act(() => api.patch(`/months/${year}/${month}`, body));
+  async function patchBalance(body) {
+    setBusy(true);
+    setError('');
+    try {
+      await mutate(() => api.patch(`/months/${year}/${month}`, body));
+    } catch (e) {
+      setError(e.message);
+      throw e;
+    } finally {
+      setBusy(false);
+    }
+  }
   const togglePaid = (e) => act(() => api.patch(`/expenses/${e.id}`, { paid: !e.paid }));
 
   return (
@@ -207,11 +219,11 @@ export default function MonthPage() {
       <div className="fab-wrap" onKeyDown={(e) => e.key === 'Escape' && setFabOpen(false)}>
         {fabOpen && (
           <div className="fab-menu">
-            <button className="btn" onClick={() => { setFabOpen(false); setForm({ kind: 'income' }); }}>Bevétel</button>
-            <button className="btn" onClick={() => { setFabOpen(false); setForm({ kind: 'expense' }); }}>Kiadás</button>
+            <button className="btn" onClick={() => { setFabOpen(false); fabRef.current?.focus(); setForm({ kind: 'income' }); }}>Bevétel</button>
+            <button className="btn" onClick={() => { setFabOpen(false); fabRef.current?.focus(); setForm({ kind: 'expense' }); }}>Kiadás</button>
           </div>
         )}
-        <button className="fab" onClick={() => setFabOpen(!fabOpen)} aria-label="Új tétel" aria-expanded={fabOpen}>+</button>
+        <button className="fab" ref={fabRef} onClick={() => setFabOpen(!fabOpen)} aria-label="Új tétel" aria-expanded={fabOpen}>+</button>
       </div>
 
       {form?.kind === 'income' && (

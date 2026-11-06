@@ -28,3 +28,14 @@ describe('hónap segédek', () => {
   });
   it('monthLabel', () => expect(monthLabel(2026, 11)).toBe('2026. november'));
 });
+
+import { parseSigned } from './format.js';
+describe('parseSigned', () => {
+  it('negatív és pozitív', () => {
+    expect(parseSigned('-15000')).toBe(-15000);
+    expect(parseSigned('−15.000,-')).toBe(-15000);
+    expect(parseSigned('250 000')).toBe(250000);
+    expect(parseSigned('-')).toBeNull();
+    expect(parseSigned('abc')).toBeNull();
+  });
+});

@@ -86,3 +86,11 @@ fieldset { border: 1px solid var(--line); border-radius: 8px; color: var(--muted
 .row-btn { all: unset; box-sizing: border-box; flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 0.7rem; cursor: pointer; }
 .row-btn:focus-visible, .check-btn:focus-visible, .btn:focus-visible, .fab:focus-visible, .nav-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .block { display: block; }
+
+.link { color: inherit; text-decoration: none; }
+.cmp { cursor: default; gap: 0.5rem; }
+.num { font-variant-numeric: tabular-nums; text-align: right; min-width: 5.5rem; font-size: 0.9rem; }
+.gap { margin-top: 1rem; }
+.compare-pick { margin: 0.5rem 0; }
+@media (max-width: 520px) { .cmp .num { min-width: 0; font-size: 0.78rem; } }
+.form.row { flex-direction: row; align-items: flex-end; margin-top: 0; }
