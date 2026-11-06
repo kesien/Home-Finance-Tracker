@@ -20,3 +20,7 @@
 ## 2026-11-06
 - Fázis 4 mergelve.
 - Fázis 5: 12 hónapos előrejelzés (`/api/forecast`), küszöb-figyelmeztetés, vonaldiagram és táblázat.
+
+## 2026-11-06
+- Fázis 5 mergelve.
+- Fázis 6: napi automatikus mentés (30 megőrzése), JSON export/import (atomikus, import előtti mentéssel), Beállítások oldal.

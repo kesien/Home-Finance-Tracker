@@ -4,8 +4,8 @@ import MonthsPage from './pages/MonthsPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import StatsPage from './pages/StatsPage.jsx';
 import ForecastPage from './pages/ForecastPage.jsx';
+import SettingsPage from './pages/SettingsPage.jsx';
 import CategoriesPage from './pages/CategoriesPage.jsx';
-import Placeholder from './pages/Placeholder.jsx';
 
 const NAV = [
   { to: '/', label: 'Főoldal', icon: '⌂', end: true },
@@ -39,7 +39,7 @@ export default function App() {
             <Route path="/kategoriak" element={<CategoriesPage />} />
             <Route path="/elorejelzes" element={<ForecastPage />} />
             <Route path="/statisztika" element={<StatsPage />} />
-            <Route path="/beallitasok" element={<Placeholder title="Beállítások" note="Fázis 6." />} />
+            <Route path="/beallitasok" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

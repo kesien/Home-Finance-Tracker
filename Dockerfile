@@ -10,7 +10,7 @@ RUN npm run build && npm prune --omit=dev
 
 FROM node:22-slim
 WORKDIR /app
-ENV NODE_ENV=production DB_FILE=/data/finance.db PORT=3000
+ENV NODE_ENV=production DB_FILE=/data/finance.db BACKUP_DIR=/data/backups PORT=3000
 COPY --from=build /app/node_modules node_modules
 COPY --from=build /app/backend backend
 COPY --from=build /app/frontend/dist frontend/dist
