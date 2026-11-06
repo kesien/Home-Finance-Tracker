@@ -3,6 +3,7 @@ import { HttpError } from './service.js';
 
 const MAX = 1e12;
 const isInt = (v) => Number.isSafeInteger(v) && Math.abs(v) <= MAX;
+const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const bad = (m) => new HttpError(400, `Érvénytelen import: ${m}`);
 
 export function exportAll(db) {
@@ -40,6 +41,7 @@ export function validateImport(data) {
   if (data.version !== 1) throw bad(`nem támogatott verzió: ${data.version}`);
   if (!Array.isArray(data.categories) || !Array.isArray(data.months)) throw bad('hiányzó categories / months');
 
+  if (data.settings !== undefined && !isObj(data.settings)) throw bad('settings: objektum kell');
   const s = data.settings ?? {};
   const avgN = s.avgN ?? 3;
   const threshold = s.forecastThreshold ?? 0;
@@ -59,6 +61,7 @@ export function validateImport(data) {
   const monthKeys = new Set();
   const months = data.months.map((m, i) => {
     const at = `months[${i}]`;
+    if (!isObj(m)) throw bad(`${at}: objektum kell`);
     ym(m.year, m.month, at);
     const key = `${m.year}-${m.month}`;
     if (monthKeys.has(key)) throw bad(`${at}: ismétlődő hónap (${key})`);
@@ -66,12 +69,14 @@ export function validateImport(data) {
     if (!isInt(m.accountBalance ?? 0) || !isInt(m.savingsBalance ?? 0)) throw bad(`${at}: az egyenleg egész szám`);
     if (!Array.isArray(m.incomes) || !Array.isArray(m.expenses)) throw bad(`${at}: hiányzó incomes / expenses`);
     const incomes = m.incomes.map((x, j) => {
+      if (!isObj(x)) throw bad(`${at}.incomes[${j}]: objektum kell`);
       if (!isInt(x.amount) || x.amount < 0) throw bad(`${at}.incomes[${j}]: amount`);
       if (!['fixed', 'variable'].includes(x.type)) throw bad(`${at}.incomes[${j}]: type`);
       return { name: str(x.name, `${at}.incomes[${j}].name`), amount: x.amount, type: x.type };
     });
     const expenses = m.expenses.map((x, j) => {
       const f = `${at}.expenses[${j}]`;
+      if (!isObj(x)) throw bad(`${f}: objektum kell`);
       if (!isInt(x.amount) || x.amount < 0) throw bad(`${f}: amount`);
       if (!['monthly', 'yearly'].includes(x.type)) throw bad(`${f}: type`);
       const category = str(x.category, `${f}.category`);

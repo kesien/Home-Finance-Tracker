@@ -158,3 +158,50 @@ describe('export / import', () => {
     expect(r.headers['content-disposition']).toContain('koltsegkovet-2026-11-15.json');
   });
 });
+
+describe('mentés – robusztusság (review)', () => {
+  it('párhuzamos mentések nem ütköznek', async () => {
+    await api.post('/api/months').send({ year: 2026, month: 10 });
+    const rs = await Promise.all(Array.from({ length: 6 }, () => api.post('/api/backups')));
+    expect(rs.map((r) => r.status)).toEqual([201, 201, 201, 201, 201, 201]);
+    expect(fs.readdirSync(dir).filter((f) => f.endsWith('.tmp'))).toEqual([]);
+    const copy = openDb(path.join(dir, 'finance-2026-11-15.db'));
+    expect(copy.prepare('SELECT COUNT(*) AS n FROM months').get().n).toBe(1);
+    copy.close();
+  });
+
+  it('két import ugyanabban a pillanatban nem írja felül az első import előtti mentést', async () => {
+    await api.post('/api/months').send({ year: 2026, month: 10 });
+    const exported = (await api.get('/api/export')).body;
+    const a = await api.post('/api/import').send(exported);
+    const b = await api.post('/api/import').send({ ...exported, months: [] });
+    expect(a.body.backup).not.toBe(b.body.backup);
+    const first = openDb(path.join(dir, a.body.backup));
+    expect(first.prepare('SELECT COUNT(*) AS n FROM months').get().n).toBe(1);
+    first.close();
+  });
+
+  it('az ütemező induláskor törli a félkész .tmp fájlokat', () => {
+    fs.writeFileSync(path.join(dir, '.finance-2026-11-14.db.1-1.tmp'), 'x');
+    const stop = startBackupScheduler({ db, dir, now: () => NOW, intervalMs: 1e9, log: { log() {}, error() {} } });
+    stop();
+    expect(fs.readdirSync(dir).some((f) => f.endsWith('.tmp') && f.includes('2026-11-14'))).toBe(false);
+  });
+
+  it('hibás elemek az importban 400-at adnak, nem 500-at', async () => {
+    const base = { format: 'haztartasi-koltsegkovet', version: 1, categories: [] };
+    const bads = [
+      { ...base, months: [null] },
+      { ...base, months: [{ year: 2026, month: 1, incomes: [null], expenses: [] }] },
+      { ...base, months: [{ year: 2026, month: 1, incomes: [], expenses: [7] }] },
+      { ...base, settings: 'x', months: [] },
+    ];
+    for (const b of bads) expect((await api.post('/api/import').send(b)).status).toBe(400);
+  });
+
+  it('túl nagy törzs érthető hibát kap', async () => {
+    const r = await api.post('/api/import').set('Content-Type', 'application/json').send(JSON.stringify({ pad: 'x'.repeat(21 * 1024 * 1024) }));
+    expect(r.status).toBe(413);
+    expect(r.body.error).toContain('20 MB');
+  });
+});

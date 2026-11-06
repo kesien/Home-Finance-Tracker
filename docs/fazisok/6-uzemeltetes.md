@@ -16,3 +16,9 @@ Az automatikus mentés létrejön (tesztelve + valós szerveren kipróbálva), a
 ## Kimaradt / későbbre
 - Mentésből visszaállítás a felületről: szándékosan kézi (lásd README), mert fájlcserét igényel leállított szerver mellett.
 - A mentések letöltése a felületről.
+
+## Review 1. kör után
+- A mentések sorban futnak (közös ideiglenes név miatti ütközés megszűnt; egyedi tmp név), leállításkor a futó mentést megvárjuk; induláskor a félkész `.tmp` fájlok törlődnek.
+- Az import előtti mentés neve ezredmásodperc pontos és sosem ír felül meglévő fájlt (`-2`, `-3` utótag), így az eredeti adat nem veszhet el.
+- Az import minden elemtípust ellenőriz (`null`, nem objektum → 400), a `settings` objektum kell legyen; túl nagy törzs (413) érthető üzenetet kap.
+- Beállítások: az űrlap csak betöltött értékekkel jelenik meg (Újra gomb hibánál); üres (0 hónapos) import külön figyelmeztetést kap; az export fájlnév helyi dátumot használ; a README felsorolja a `BACKUP_DIR`-t.

@@ -23,6 +23,7 @@ Dokumentáció: `docs/fazisok/`, `docs/adr/`, `docs/CHANGELOG.md`.
 |---|---|---|
 | `PORT` | `3000` | A szerver portja |
 | `DB_FILE` | `data/finance.db` (Dockerben `/data/finance.db`) | Az SQLite fájl helye |
+| `BACKUP_DIR` | `data/backups` (Dockerben `/data/backups`) | A napi mentések könyvtára |
 | `STATIC_DIR` | `frontend/dist` | A buildelt frontend könyvtára |
 
 Node 22 szükséges (`.nvmrc`). **Figyelem:** az app nem használ bejelentkezést, ezért ne tedd elérhetővé az internetről, csak a helyi hálózaton futtasd.

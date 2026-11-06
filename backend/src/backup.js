@@ -2,22 +2,41 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const DAILY = /^finance-(\d{4}-\d{2}-\d{2})\.db$/;
-const PRE_IMPORT = /^finance-pre-import-\d{8}-\d{6}\.db$/;
+const PRE_IMPORT = /^finance-pre-import-\d{8}-\d{6}-\d{3}(-\d+)?\.db$/;
+
+const TMP = /^\..*\.tmp$/;
+let queue = Promise.resolve(); // a mentések egymás után futnak (közös ideiglenes név / párhuzamos írás ellen)
+let seq = 0;
 
 const pad = (n) => String(n).padStart(2, '0');
 export const dayStamp = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const timeStamp = (d) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+const timeStamp = (d) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}-${String(d.getMilliseconds()).padStart(3, '0')}`;
 
 /**
  * Konzisztens másolat az élő SQLite fájlról (better-sqlite3 backup API, WAL mellett is biztonságos).
  * Előbb ideiglenes fájlba ír, és csak kész állapotban nevezi át, így félkész mentés sosem marad a könyvtárban.
  */
-async function writeBackup(db, dir, finalName) {
-  fs.mkdirSync(dir, { recursive: true });
-  const tmp = path.join(dir, `.${finalName}.tmp`);
-  await db.backup(tmp);
-  fs.renameSync(tmp, path.join(dir, finalName));
-  return finalName;
+/** Leállításkor megvárjuk a futó mentést, hogy ne szakadjon félbe. */
+export const backupsIdle = () => queue;
+
+function writeBackup(db, dir, finalName, { unique = false } = {}) {
+  const run = async () => {
+    fs.mkdirSync(dir, { recursive: true });
+    let name = finalName;
+    // Import előtti mentésnél soha nem írunk felül meglévő fájlt (az eredeti adat az utolsó mentse).
+    for (let n = 2; unique && fs.existsSync(path.join(dir, name)); n++) name = finalName.replace(/\.db$/, `-${n}.db`);
+    const tmp = path.join(dir, `.${name}.${process.pid}-${++seq}.tmp`);
+    try {
+      await db.backup(tmp);
+      fs.renameSync(tmp, path.join(dir, name));
+    } finally {
+      fs.rmSync(tmp, { force: true });
+    }
+    return name;
+  };
+  const result = queue.then(run, run);
+  queue = result.catch(() => {}); // egy hibás mentés ne akassza meg a sort
+  return result;
 }
 
 /** Napi mentés; ha mára már van, nem készít újat (visszatérés: null). */
@@ -31,7 +50,7 @@ export async function createDailyBackup(db, dir, now = new Date(), keep = 30) {
 
 /** Importálás előtti biztonsági mentés (mindig új fájl; az utolsó néhányat őrizzük meg). */
 export async function createPreImportBackup(db, dir, now = new Date()) {
-  const name = await writeBackup(db, dir, `finance-pre-import-${timeStamp(now)}.db`);
+  const name = await writeBackup(db, dir, `finance-pre-import-${timeStamp(now)}.db`, { unique: true });
   pruneBackups(dir, 30, 5);
   return name;
 }
@@ -69,6 +88,8 @@ export function pruneBackups(dir, keepDaily = 30, keepPre = 5) {
  * szerver is pótolja a kimaradt napot.) Hibát naplóz, de nem állítja le az appot.
  */
 export function startBackupScheduler({ db, dir, keep = 30, intervalMs = 60 * 60 * 1000, now = () => new Date(), log = console }) {
+  // Egy korábbi összeomlásból maradt félkész ideiglenes fájlok takarítása (induláskor még nem fut mentés).
+  if (fs.existsSync(dir)) fs.readdirSync(dir).filter((f) => TMP.test(f)).forEach((f) => fs.rmSync(path.join(dir, f), { force: true }));
   const tick = () => createDailyBackup(db, dir, now(), keep).then((n) => n && log.log(`Mentés készült: ${n}`)).catch((e) => log.error('Mentés sikertelen:', e));
   tick();
   const timer = setInterval(tick, intervalMs);

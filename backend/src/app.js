@@ -32,7 +32,7 @@ export function createApp({ db, staticDir, now, backupDir }) {
   app.use((err, _req, res, _next) => {
     const status = err.status >= 400 && err.status < 500 ? err.status : 500;
     if (status === 500) console.error(err);
-    const message = err instanceof HttpError ? err.message : status === 500 ? 'Szerverhiba' : 'Érvénytelen kérés';
+    const message = err instanceof HttpError ? err.message : err.type === 'entity.too.large' ? 'A kérés túl nagy (legfeljebb 20 MB)' : status === 500 ? 'Szerverhiba' : 'Érvénytelen kérés';
     res.status(status).json({ error: message });
   });
 

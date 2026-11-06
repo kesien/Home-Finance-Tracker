@@ -65,7 +65,8 @@ export default function SettingsPage() {
       return fail('A fájl nem érvényes JSON.');
     }
     const months = Array.isArray(data?.months) ? data.months.length : '?';
-    if (!confirm(`FIGYELEM: az import az ÖSSZES jelenlegi adatot lecseréli a fájl tartalmára (${months} hónap). Előtte biztonsági mentés készül. Folytatod?`)) return;
+    const empty = months === 0 ? '\n\nA fájl NEM tartalmaz hónapot: az import minden jelenlegi adatot töröl!' : '';
+    if (!confirm(`FIGYELEM: az import az ÖSSZES jelenlegi adatot lecseréli a fájl tartalmára (${months} hónap). Előtte biztonsági mentés készül. Folytatod?${empty}`)) return;
     try {
       const r = await api.post('/import', data);
       ok(`Import kész: ${r.months} hónap, ${r.categories} kategória. Biztonsági mentés: ${r.backup ?? 'nincs'}.`);
@@ -75,7 +76,15 @@ export default function SettingsPage() {
     }
   }
 
-  if (!loaded && !msg) return <><h1>Beállítások</h1><p className="muted">Betöltés…</p></>;
+  // Az űrlapot csak betöltött értékekkel jelenítjük meg: különben az alapértékek felülírhatnák a valódi beállításokat.
+  if (!loaded) {
+    return (
+      <>
+        <h1>Beállítások</h1>
+        {msg ? <p className="warn" role="alert">{msg.text} <button className="btn" onClick={() => { setMsg(null); load(); }}>Újra</button></p> : <p className="muted">Betöltés…</p>}
+      </>
+    );
+  }
 
   return (
     <>

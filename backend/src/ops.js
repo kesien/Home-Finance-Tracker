@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { exportAll, validateImport, applyImport } from './transfer.js';
-import { createManualBackup, createPreImportBackup, listBackups } from './backup.js';
+import { dayStamp, createManualBackup, createPreImportBackup, listBackups } from './backup.js';
 import { HttpError } from './service.js';
 
 /** Üzemeltetési végpontok: export, import, mentések. `backupDir` nélkül a mentések tiltottak. */
@@ -11,7 +11,7 @@ export function createOpsRouter({ db, backupDir, now = () => new Date() }) {
   const r = Router();
 
   r.get('/export', (_q, res) => {
-    const stamp = now().toISOString().slice(0, 10);
+    const stamp = dayStamp(now()); // helyi dátum, mint a napi mentésnél
     res.setHeader('Content-Disposition', `attachment; filename="koltsegkovet-${stamp}.json"`);
     res.json(exportAll(db));
   });

@@ -2,7 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openDb } from './db.js';
 import { createApp } from './app.js';
-import { startBackupScheduler } from './backup.js';
+import { startBackupScheduler, backupsIdle } from './backup.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT ?? 3000);
@@ -20,7 +20,8 @@ const stopBackups = startBackupScheduler({ db, dir: backupDir });
 // Szabályos leállítás (docker stop): szerver és DB lezárása, hogy a WAL checkpoint megtörténjen.
 function shutdown() {
   stopBackups();
-  server.close(() => {
+  server.close(async () => {
+    await backupsIdle();
     db.close();
     process.exit(0);
   });
