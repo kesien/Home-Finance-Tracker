@@ -86,3 +86,54 @@ describe('nextMonth', () => {
     expect(nextMonth(2026, 5)).toEqual({ year: 2026, month: 6 });
   });
 });
+
+import { forecast } from '../src/logic.js';
+
+describe('forecast', () => {
+  const base = { year: 2026, month: 11, startBalance: 1000, avgVariableIncome: 50, threshold: 0 };
+  const incomes = [{ type: 'fixed', amount: 800 }, { type: 'variable', amount: 999 }];
+
+  it('12 hónap, a változó bevételnek csak az átlaga számít, a kezdőegyenleg után indul', () => {
+    const r = forecast({ ...base, incomes, expenses: [monthly({ amount: 300 })] });
+    expect(r.rows).toHaveLength(12);
+    expect(r.rows[0]).toMatchObject({ year: 2026, month: 12, income: 850, expense: 300, balance: 1550 });
+    expect(r.rows[11]).toMatchObject({ year: 2027, month: 11, balance: 1000 + 12 * 550 });
+  });
+
+  it('lejárt havi tétel kiesik (a lejárati hónapot beleértve még fizetendő), a lejárat nélküli marad', () => {
+    const expenses = [
+      monthly({ id: 1, amount: 100, end_year: 2027, end_month: 2 }),
+      monthly({ id: 2, amount: 10 }),
+    ];
+    const r = forecast({ ...base, incomes: [], avgVariableIncome: 0, expenses });
+    expect(r.rows.map((x) => x.expense)).toEqual([110, 110, 110, 10, 10, 10, 10, 10, 10, 10, 10, 10]); // dec, jan, feb | márc…
+  });
+
+  it('az éves tétel csak az esedékes hónapban, egyszer, teljes összeggel', () => {
+    const r = forecast({ ...base, incomes: [], avgVariableIncome: 0, expenses: [yearly({ amount: 120, due_year: 2027, due_month: 3 })] });
+    expect(r.rows.map((x) => x.expense)).toEqual([0, 0, 0, 120, 0, 0, 0, 0, 0, 0, 0, 0]); // dec, jan, feb, MÁRC
+  });
+
+  it('a már elmúlt (vagy aktuális hónapi) éves tétel nem kerül az előrejelzésbe', () => {
+    const r = forecast({ ...base, incomes: [], avgVariableIncome: 0, expenses: [yearly({ due_year: 2026, due_month: 11 }), yearly({ id: 3, due_year: 2026, due_month: 6 })] });
+    expect(r.rows.every((x) => x.expense === 0)).toBe(true);
+  });
+
+  it('küszöb alá eséskor jelzi az első hónapot', () => {
+    const r = forecast({ ...base, startBalance: 100, incomes: [{ type: 'fixed', amount: 100 }], avgVariableIncome: 0, expenses: [monthly({ amount: 150 })], threshold: 0 });
+    expect(r.firstBelow).toEqual({ year: 2027, month: 2 }); // dec: 50, jan: 0 (nem < 0), feb: -50
+    expect(r.rows[2].belowThreshold).toBe(true);
+    expect(r.rows[1].belowThreshold).toBe(false); // pontosan a küszöbön még nincs alatta
+  });
+
+  it('a küszöb állítható; 0 alatti egyenleg nélkül sincs figyelmeztetés', () => {
+    const ok = forecast({ ...base, incomes, expenses: [] });
+    expect(ok.firstBelow).toBeNull();
+    const high = forecast({ ...base, incomes, expenses: [], threshold: 1e6 });
+    expect(high.firstBelow).toEqual({ year: 2026, month: 12 });
+  });
+
+  it('évhatáron átlép', () => {
+    expect(forecast({ ...base, incomes: [], expenses: [] }).rows[1]).toMatchObject({ year: 2027, month: 1 });
+  });
+});

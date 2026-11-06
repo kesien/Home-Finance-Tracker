@@ -4,7 +4,7 @@ import express from 'express';
 import { createService } from './service.js';
 import { createRouter } from './routes.js';
 
-export function createApp({ db, staticDir }) {
+export function createApp({ db, staticDir, now }) {
   const app = express();
   app.use(express.json());
 
@@ -13,7 +13,7 @@ export function createApp({ db, staticDir }) {
     res.json({ status: 'ok', db: row.ok === 1 });
   });
 
-  app.use('/api', createRouter(createService(db)));
+  app.use('/api', createRouter(createService(db), now));
 
   // Ismeretlen /api útvonal mindig JSON 404, sosem az SPA index.html.
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Nem található' }));

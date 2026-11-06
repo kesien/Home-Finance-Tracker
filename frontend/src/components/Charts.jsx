@@ -1,4 +1,4 @@
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { ResponsiveContainer, ReferenceLine, PieChart, Pie, Cell, Tooltip, Legend, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { formatMoney, categoryColor } from '../format.js';
 import { incomeKey } from '../stats.js';
 
@@ -8,7 +8,7 @@ export const INCOME_COLORS = ['#3dbb8c', '#5b8def', '#e5a23a', '#9a7be0', '#4cc3
 const compact = (v) => (Math.abs(v) >= 1e6 ? `${Math.round(v / 1e5) / 10}M` : Math.abs(v) >= 1e3 ? `${Math.round(v / 1e3)}e` : v);
 
 /** Képernyőolvasóval és billentyűzettel is elérhető táblázat a diagram adataihoz. */
-function DataTable({ caption, columns, rows }) {
+export function DataTable({ caption, columns, rows }) {
   return (
     <details className="data-table">
       <summary>Adatok táblázatként</summary>
@@ -85,5 +85,23 @@ export function IncomeStack({ rows, names }) {
     <DataTable caption="Bevételi összetétel havonként" columns={['Hónap', ...names]}
       rows={rows.map((r) => [r.label, ...names.map((n) => formatMoney(r[incomeKey(n)] ?? 0))])} />
     </>
+  );
+}
+
+/** Egyenleg-előrejelzés vonaldiagramja a küszöb jelölésével; `data`: [{label, balance}]. */
+export function ForecastChart({ data, threshold }) {
+  return (
+    <div className="chart" role="img" aria-label="Várható egyenleg a következő 12 hónapban; részletek a táblázatban">
+      <ResponsiveContainer width="100%" height={280}>
+        <LineChart data={data} margin={{ left: 0, right: 8, top: 8 }}>
+          <CartesianGrid stroke="#2a2f3a" vertical={false} />
+          <XAxis dataKey="label" {...AXIS} />
+          <YAxis {...AXIS} tickFormatter={compact} width={44} />
+          <Tooltip {...TOOLTIP} formatter={(v) => formatMoney(v)} />
+          <ReferenceLine y={threshold} stroke="#ef6b6b" strokeDasharray="5 4" label={{ value: 'Küszöb', fill: '#ef6b6b', fontSize: 12, position: 'insideBottomRight' }} />
+          <Line type="monotone" dataKey="balance" name="Egyenleg" stroke="#5b8def" strokeWidth={2} dot={{ r: 3 }} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
   );
 }

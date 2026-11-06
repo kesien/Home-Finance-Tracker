@@ -197,3 +197,46 @@ describe('statisztika', () => {
     expect(r.categories.length).toBe(11);
   });
 });
+
+describe('előrejelzés', () => {
+  it('404 hónap nélkül', async () => {
+    expect((await api.get('/api/forecast')).status).toBe(404);
+  });
+
+  it('a naptári hónapot használja, a változó bevétel átlagával, és küszöbbel', async () => {
+    const app = request(createApp({ db, now: () => new Date(2026, 10, 15) }));
+    for (const [m, v] of [[9, 100000], [10, 200000], [11, 300000]]) {
+      await app.post('/api/months').send({ year: 2026, month: m });
+      await app.post(`/api/months/2026/${m}/incomes`).send({ name: 'Extra', amount: v, type: 'variable' });
+    }
+    await app.post('/api/months/2026/11/incomes').send({ name: 'Fizu', amount: 800000, type: 'fixed' });
+    await app.post('/api/months/2026/11/expenses').send({ name: 'Hitel', amount: 90000, end_year: 2027, end_month: 1 });
+    await app.post('/api/months/2026/11/expenses').send({ name: 'Adó', amount: 60000, type: 'yearly', due_year: 2027, due_month: 6 });
+    await app.patch('/api/months/2026/11').send({ accountBalance: 100000, savingsBalance: 400000 });
+    const r = (await app.get('/api/forecast')).body;
+    expect(r.base).toEqual({ year: 2026, month: 11 });
+    expect(r.isCurrent).toBe(true);
+    expect(r.startBalance).toBe(500000);
+    expect(r.avgVariableIncome).toBe(200000); // (100+200+300)/3
+    expect(r.rows[0]).toMatchObject({ month: 12, income: 1000000, expense: 90000, balance: 500000 + 910000 });
+    expect(r.rows[2]).toMatchObject({ month: 2, expense: 0 }); // a hitel januárig tart
+    expect(r.rows[6]).toMatchObject({ month: 6, expense: 60000 });
+    await app.put('/api/settings').send({ forecastThreshold: 5000000 });
+    expect((await app.get('/api/forecast')).body.firstBelow).toEqual({ year: 2026, month: 12 });
+  });
+
+  it('ha az aktuális hónap nincs létrehozva, a legutolsó létezőből indul és isCurrent=false', async () => {
+    const app = request(createApp({ db, now: () => new Date(2026, 10, 15) }));
+    await app.post('/api/months').send({ year: 2026, month: 8 });
+    const r = (await app.get('/api/forecast')).body;
+    expect(r.base).toEqual({ year: 2026, month: 8 });
+    expect(r.isCurrent).toBe(false);
+  });
+
+  it('megadott alaphónap és érvénytelen paraméter', async () => {
+    await newMonth(2026, 5);
+    expect((await api.get('/api/forecast?year=2026&month=5')).body.base).toEqual({ year: 2026, month: 5 });
+    expect((await api.get('/api/forecast?year=2026&month=9')).status).toBe(404);
+    expect((await api.get('/api/forecast?year=x&month=1')).status).toBe(400);
+  });
+});
