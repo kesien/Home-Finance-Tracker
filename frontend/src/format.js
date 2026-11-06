@@ -23,3 +23,11 @@ export function shiftMonth(year, month, delta) {
 
 const PALETTE = ['#5b8def', '#e5a23a', '#3dbb8c', '#d4608f', '#9a7be0', '#4cc3d9', '#e0745a', '#a3c64b', '#d9b84a', '#7a8bb5', '#c76fd6', '#8a8f9c'];
 export const categoryColor = (id) => PALETTE[(Number(id) - 1 + PALETTE.length) % PALETTE.length];
+
+/** Előjeles egész (egyenlegekhez, a számla negatív is lehet): "-15000", "−15.000,-" → -15000; érvénytelenre null. */
+export function parseSigned(text) {
+  const t = String(text).trim().replace(/^[−–]/, '-');
+  const neg = t.startsWith('-');
+  const v = parseAmount(neg ? t.slice(1) : t);
+  return v === null ? null : neg ? -v : v;
+}
