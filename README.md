@@ -26,3 +26,21 @@ Dokumentáció: `docs/fazisok/`, `docs/adr/`, `docs/CHANGELOG.md`.
 | `STATIC_DIR` | `frontend/dist` | A buildelt frontend könyvtára |
 
 Node 22 szükséges (`.nvmrc`). **Figyelem:** az app nem használ bejelentkezést, ezért ne tedd elérhetővé az internetről, csak a helyi hálózaton futtasd.
+
+## Mentés és visszaállítás
+
+**Automatikus mentés:** naponta egy (`finance-ÉÉÉÉ-HH-NN.db`), az utolsó 30 napot őrzi meg. A fájlok a Docker volume `backups/` könyvtárában vannak. Az app a Beállítások oldalon listázza őket, és ott lehet „Mentés most”-t indítani.
+
+> A mentések ugyanazon a lemezen vannak, mint az adatbázis. Időnként töltsd le a **JSON exportot** (Beállítások → JSON export letöltése), és tedd el másik gépre.
+
+**Visszaállítás JSON-ból (az app fut):** Beállítások → JSON import → válaszd ki a fájlt. Az import az összes jelenlegi adatot lecseréli, előtte automatikus biztonsági mentés készül (`finance-pre-import-….db`).
+
+**Visszaállítás mentésfájlból (SQLite):**
+```bash
+docker compose stop app
+# a volume tartalmának elérése (a volume neve: <projektkönyvtár>_finance-data)
+docker run --rm -v home-finance-tracker_finance-data:/data alpine sh -c \
+  'cp /data/backups/finance-2026-11-15.db /data/finance.db && rm -f /data/finance.db-wal /data/finance.db-shm'
+docker compose start app
+```
+(A `-wal` és `-shm` fájlok törlése fontos, különben a régi napló a visszaállított adatbázisra íródhatna.)
