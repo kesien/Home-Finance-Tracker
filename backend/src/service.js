@@ -175,7 +175,9 @@ export function createService(db) {
       month: base.month,
       threshold: forecastThreshold,
     });
-    return { base: { year: base.year, month: base.month }, avgN, monthsUsed: avg.monthsUsed, ...result };
+    // isCurrent: az alaphónap a naptári aktuális hónap-e (különben a felület figyelmeztet, hogy az adat elavult lehet)
+    const isCurrent = base.year === now.getFullYear() && base.month === now.getMonth() + 1;
+    return { base: { year: base.year, month: base.month }, isCurrent, avgN, monthsUsed: avg.monthsUsed, ...result };
   }
 
   /** Statisztikához: minden hónap (időrendben) összesítője, bevételek név szerint, kategóriaösszegek. */

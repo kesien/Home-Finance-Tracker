@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { formatMoney, monthLabel, parseSigned, MONTH_NAMES } from '../format.js';
 import { ForecastChart } from '../components/Charts.jsx';
@@ -11,6 +12,7 @@ export default function ForecastPage() {
   const [error, setError] = useState('');
   const [thresholdText, setThresholdText] = useState('0');
   const [saveError, setSaveError] = useState('');
+  const [saved, setSaved] = useState(false);
 
   const load = useCallback(() => {
     let stale = false;
@@ -26,15 +28,25 @@ export default function ForecastPage() {
     const v = parseSigned(thresholdText);
     if (v === null) return setSaveError('A küszöb egész szám legyen (Ft)');
     setSaveError('');
+    setSaved(false);
     try {
       await api.put('/settings', { forecastThreshold: v });
+      setSaved(true);
       load();
     } catch (err) {
       setSaveError(err.message);
     }
   }
 
-  if (error) return <><h1>Előrejelzés</h1><p className="error" role="alert">{error}</p></>;
+  if (error && !data) {
+    return (
+      <>
+        <h1>Előrejelzés</h1>
+        <p className="error" role="alert">{error}</p>
+        <Link className="btn link" to="/honapok">Hónapok megnyitása</Link>
+      </>
+    );
+  }
   if (!data) return <><h1>Előrejelzés</h1><p className="muted">Betöltés…</p></>;
 
   const chart = data.rows.map((r) => ({ label: shortLabel(r), balance: r.balance }));
@@ -46,6 +58,12 @@ export default function ForecastPage() {
         (utolsó {data.avgN} hónap, {data.monthsUsed} hónap alapján). Kiadás = az alaphónap fix havi tételei (lejáratukig) + az adott hónapban esedékes éves tételek.
       </p>
 
+      {!data.isCurrent && (
+        <p className="warn" role="alert">
+          ⚠ Az aktuális hónap még nincs létrehozva, ezért az előrejelzés a legutóbbi hónapból ({monthLabel(data.base.year, data.base.month)}) indul, az egyenleg elavult lehet.{' '}
+          <Link to="/honapok">Hónap létrehozása</Link>
+        </p>
+      )}
       {data.firstBelow ? (
         <p className="warn" role="alert">
           ⚠ Az egyenleg {monthLabel(data.firstBelow.year, data.firstBelow.month)} hónapban a küszöb ({formatMoney(data.threshold)}) alá esik.
@@ -64,11 +82,16 @@ export default function ForecastPage() {
 
       <form className="row form" onSubmit={saveThreshold}>
         <label className="grow">Figyelmeztetési küszöb (Ft)
-          <input inputMode="text" value={thresholdText} onChange={(e) => setThresholdText(e.target.value)} />
+          <input inputMode="text" value={thresholdText} onChange={(e) => { setThresholdText(e.target.value); setSaved(false); }} aria-describedby="thr-msg" />
         </label>
         <button className="btn">Mentés</button>
       </form>
-      {saveError && <p className="error" role="alert">{saveError}</p>}
+      <div id="thr-msg">
+        {saveError && <p className="error" role="alert">{saveError}</p>}
+        {saved && !saveError && <p className="muted small" role="status">Elmentve.</p>}
+        {error && <p className="error" role="alert">{error}</p>}
+      </div>
+      <p className="muted small">Az éves tételek nem ismétlődnek automatikusan: csak az az éves tétel szerepel, amelyik az alaphónapban fel van véve, és a 12 hónapon belül esedékes.</p>
 
       <section>
         <h2>Hónapról hónapra</h2>

@@ -215,6 +215,7 @@ describe('előrejelzés', () => {
     await app.patch('/api/months/2026/11').send({ accountBalance: 100000, savingsBalance: 400000 });
     const r = (await app.get('/api/forecast')).body;
     expect(r.base).toEqual({ year: 2026, month: 11 });
+    expect(r.isCurrent).toBe(true);
     expect(r.startBalance).toBe(500000);
     expect(r.avgVariableIncome).toBe(200000); // (100+200+300)/3
     expect(r.rows[0]).toMatchObject({ month: 12, income: 1000000, expense: 90000, balance: 500000 + 910000 });
@@ -222,6 +223,14 @@ describe('előrejelzés', () => {
     expect(r.rows[6]).toMatchObject({ month: 6, expense: 60000 });
     await app.put('/api/settings').send({ forecastThreshold: 5000000 });
     expect((await app.get('/api/forecast')).body.firstBelow).toEqual({ year: 2026, month: 12 });
+  });
+
+  it('ha az aktuális hónap nincs létrehozva, a legutolsó létezőből indul és isCurrent=false', async () => {
+    const app = request(createApp({ db, now: () => new Date(2026, 10, 15) }));
+    await app.post('/api/months').send({ year: 2026, month: 8 });
+    const r = (await app.get('/api/forecast')).body;
+    expect(r.base).toEqual({ year: 2026, month: 8 });
+    expect(r.isCurrent).toBe(false);
   });
 
   it('megadott alaphónap és érvénytelen paraméter', async () => {

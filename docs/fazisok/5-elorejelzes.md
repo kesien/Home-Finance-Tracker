@@ -18,3 +18,9 @@
 
 ## Kimaradt / későbbre
 - Forgatókönyvek (pl. „mi van, ha megszűnik egy bevétel”) – nem része a feladatnak.
+
+## Review 1. kör után
+- A `/api/forecast` válasza `isCurrent`-et is ad; ha az aktuális naptári hónap nincs létrehozva (az előrejelzés a legutóbbi létező hónapból indul), a felület figyelmeztet és a Hónapok oldalra linkel.
+- Hónap nélkül (404) link a Hónapok oldalra; a küszöbmentés „Elmentve” jelzést ad, a hibaüzenet az inputhoz kötött (`aria-describedby`), egy sikertelen újratöltés nem dobja el az oldalt.
+- A felület kiírja, hogy az éves tételek nem ismétlődnek automatikusan.
+- Ismert korlát (Nit): a változó átlag a *létező* hónapokból számol (hézagos hónapokat nem pótol), és az alaphónapot is tartalmazza.
