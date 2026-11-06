@@ -12,3 +12,7 @@
 ## Kimaradt / későbbre
 - Hónap törlése a felületről (az API tudja, szándékosan nincs gomb: adatvesztés-kockázat).
 - Kettőnél több hónap összevetése; ezt a Fázis 4 trendgrafikonja pótolja.
+
+## Review 1. kör után
+- Összehasonlítás: fejlécsor és `aria-label`-ek a számokon (Alap / Összevetett / Különbség), hibánál és betöltés közben nem marad elavult tábla.
+- Új hónap: az év szövegmező (törölhető), tiltás okának kiírása, létrehozási hiba után a lista újratöltődik.

@@ -47,4 +47,19 @@ describe('MonthsPage', () => {
     expect(expense.querySelector('strong').textContent).toBe('-100,-');
     expect(expense.querySelector('strong').className).toContain('pos'); // kevesebb kiadás = kedvező
   });
+
+  it('hibánál nem marad elavult összehasonlító tábla, és az összeg-számok címkézettek', async () => {
+    let fail = false;
+    vi.stubGlobal('fetch', vi.fn((url) => {
+      if (url === '/api/months') return json(months);
+      if (url === '/api/categories') return json([{ id: 1, name: 'Rezsi' }]);
+      return fail ? json({ error: 'Hiba van' }, 500) : json(url.endsWith('/10') ? detail(800, 500) : detail(900, 400));
+    }));
+    render(<MemoryRouter><MonthsPage /></MemoryRouter>);
+    await screen.findByLabelText('Különbség: +100,-');
+    fail = true;
+    fireEvent.change(screen.getByLabelText('Alap'), { target: { value: '2026-11' } });
+    await screen.findByText('Hiba van');
+    expect(screen.queryByLabelText('Különbség: +100,-')).toBeNull();
+  });
 });

@@ -15,11 +15,13 @@ function Compare({ months }) {
 
   useEffect(() => {
     let stale = false;
+    setResult(null); // betöltés / hiba alatt ne maradjon elavult tábla
+    setError('');
     const [ay, am] = a.split('-');
     const [by, bm] = b.split('-');
     Promise.all([api.get(`/months/${ay}/${am}`), api.get(`/months/${by}/${bm}`), api.get('/categories')])
       .then(([da, db, cats]) => !stale && (setResult(compareMonths(da, db, cats)), setError('')))
-      .catch((e) => !stale && setError(e.message));
+      .catch((e) => !stale && (setResult(null), setError(e.message)));
     return () => { stale = true; };
   }, [a, b]);
 
@@ -39,26 +41,30 @@ function Compare({ months }) {
       <h2>Összehasonlítás</h2>
       <div className="row compare-pick form">{select(a, setA, 'Alap')}{select(b, setB, 'Összevetett')}</div>
       {error && <p className="error" role="alert">{error}</p>}
+      {!result && !error && <p className="muted" role="status">Betöltés…</p>}
       {result && (
         <>
-          <ul className="list">
+          <ul className="list" aria-label="Összesítők összehasonlítása">
+            <li className="item cmp muted small" aria-hidden="true">
+              <span className="grow" /><span className="num">Alap</span><span className="num">Összevetett</span><span className="num">Különbség</span>
+            </li>
             {result.totals.map((t) => (
               <li key={t.label} className="item cmp">
                 <span className="grow">{t.label}</span>
-                <span className="muted num">{formatMoney(t.a)}</span>
-                <span className="num">{formatMoney(t.b)}</span>
-                <strong className={`num ${cls(t.diff, t.goodWhenUp)}`}>{signed(t.diff)}</strong>
+                <span className="muted num" aria-label={`Alap: ${formatMoney(t.a)}`}>{formatMoney(t.a)}</span>
+                <span className="num" aria-label={`Összevetett: ${formatMoney(t.b)}`}>{formatMoney(t.b)}</span>
+                <strong className={`num ${cls(t.diff, t.goodWhenUp)}`} aria-label={`Különbség: ${signed(t.diff)}`}>{signed(t.diff)}</strong>
               </li>
             ))}
           </ul>
           <h2 className="gap">Kategóriák</h2>
-          <ul className="list">
+          <ul className="list" aria-label="Kategóriák összehasonlítása">
             {result.categories.map((c) => (
               <li key={c.id} className="item cmp">
                 <span className="grow"><span className="dot" style={{ background: categoryColor(c.id) }} />{c.name}</span>
-                <span className="muted num">{formatMoney(c.a)}</span>
-                <span className="num">{formatMoney(c.b)}</span>
-                <strong className={`num ${cls(c.diff, false)}`}>{signed(c.diff)}</strong>
+                <span className="muted num" aria-label={`Alap: ${formatMoney(c.a)}`}>{formatMoney(c.a)}</span>
+                <span className="num" aria-label={`Összevetett: ${formatMoney(c.b)}`}>{formatMoney(c.b)}</span>
+                <strong className={`num ${cls(c.diff, false)}`} aria-label={`Különbség: ${signed(c.diff)}`}>{signed(c.diff)}</strong>
               </li>
             ))}
             {result.categories.length === 0 && <li className="item muted">Nincs kiadás egyik hónapban sem.</li>}
@@ -89,16 +95,19 @@ export default function MonthsPage() {
     setBusy(true);
     setError('');
     try {
-      await api.post('/months', target);
+      await api.post('/months', { year: Number(target.year), month: target.month });
       navigate(`/honap/${target.year}/${target.month}`);
     } catch (e) {
       setError(e.message);
       setBusy(false);
+      load(); // pl. 409 esetén a lista friss állapota
     }
   }
 
   if (!months) return <>{error ? <p className="error" role="alert">{error}</p> : <p className="muted">Betöltés…</p>}</>;
-  const exists = target && months.some((m) => m.year === target.year && m.month === target.month);
+  const year = Number(target.year);
+  const yearOk = year >= 2000 && year <= 2100;
+  const exists = months.some((m) => m.year === year && m.month === target.month);
 
   return (
     <>
@@ -107,13 +116,14 @@ export default function MonthsPage() {
         <h2>Új hónap</h2>
         <p className="muted small">Az előző hónap fix tételei (a lejárati dátumukkal) átmásolódnak, a változók üresen indulnak.</p>
         <div className="row form">
-          <input type="number" aria-label="Év" value={target.year} onChange={(e) => setTarget({ ...target, year: Number(e.target.value) })} />
+          <input inputMode="numeric" aria-label="Év" value={target.year} onChange={(e) => setTarget({ ...target, year: e.target.value.replace(/\D/g, '') })} />
           <select aria-label="Hónap" value={target.month} onChange={(e) => setTarget({ ...target, month: Number(e.target.value) })}>
             {MONTH_NAMES.map((n, i) => <option key={n} value={i + 1}>{n}</option>)}
           </select>
-          <button className="btn primary" disabled={busy || exists || target.year < 2000 || target.year > 2100} onClick={create}>Létrehozás</button>
+          <button className="btn primary" disabled={busy || exists || !yearOk} onClick={create}>Létrehozás</button>
         </div>
         {exists && <p className="muted small">Ez a hónap már létezik.</p>}
+        {!exists && !yearOk && <p className="muted small">Az év 2000 és 2100 közötti legyen.</p>}
         {error && <p className="error" role="alert">{error}</p>}
       </section>
 
