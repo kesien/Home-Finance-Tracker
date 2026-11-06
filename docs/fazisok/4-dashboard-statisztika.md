@@ -14,3 +14,9 @@
 
 ## Kimaradt / későbbre
 - Diagramok teljesen automatizált vizuális tesztje (kézzel ellenőrizve Playwrighttal); jsdom-ban a diagramok méret nélkül renderelnek.
+
+## Review 1. kör után
+- Minden diagram alatt „Adatok táblázatként” (`<details>`, valódi `<table>`): pontos értékek és arányok képernyőolvasóval/billentyűzettel is elérhetők; a diagram `aria-label`-e összesítést tartalmaz.
+- A bevételi összetétel sor-kulcsai előtagot kaptak (`inc:<név>`), így egy „label” nevű bevétel nem írja felül a hónapfeliratot.
+- Kártyaszínek: 0 kiadás nem piros, a megtakarítás előjel szerint színez; a `StatsPage` betöltése stale-guarddal.
+- Ismert korlát: a kategóriaszín a 12 elemű palettából id szerint ismétlődik, 12-nél több kategóriánál két kategória azonos színű lehet; a hónaphézag a trendvonalon nem jelenik meg.

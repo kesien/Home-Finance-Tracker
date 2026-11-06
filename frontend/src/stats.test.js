@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { trendData, incomeComposition, categoryBreakdown, upcomingExpenses } from './stats.js';
+import { trendData, incomeComposition, incomeKey, categoryBreakdown, upcomingExpenses } from './stats.js';
 
 const months = [
   { year: 2026, month: 10, totalIncome: 900, totalExpense: 400, savingsBalance: 50, incomes: [{ name: 'Apa', amount: 600 }, { name: 'Anya', amount: 300 }] },
@@ -13,8 +13,13 @@ describe('stats', () => {
   it('bevételi összetétel: azonos nevek összeadva, hiányzó név nincs a sorban', () => {
     const { rows, names } = incomeComposition(months);
     expect(names).toEqual(['Apa', 'Anya', 'Családi']);
-    expect(rows[1]).toEqual({ label: '26. nov', Apa: 650, Családi: 300 });
-    expect(rows[0].Családi).toBeUndefined();
+    expect(rows[1]).toEqual({ label: '26. nov', 'inc:Apa': 650, 'inc:Családi': 300 });
+    expect(rows[0][incomeKey('Családi')]).toBeUndefined();
+  });
+  it('a "label" nevű bevétel nem írja felül a hónapfeliratot', () => {
+    const { rows } = incomeComposition([{ year: 2026, month: 11, incomes: [{ name: 'label', amount: 5 }] }]);
+    expect(rows[0].label).toBe('26. nov');
+    expect(rows[0]['inc:label']).toBe(5);
   });
   it('kategóriák csökkenő sorrendben, nulla nélkül', () => {
     const r = categoryBreakdown({ 1: 100, 2: 300, 3: 0 }, [{ id: 1, name: 'Rezsi' }, { id: 2, name: 'Hitel' }, { id: 3, name: 'Állat' }]);

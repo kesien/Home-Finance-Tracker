@@ -34,5 +34,7 @@ describe('DashboardPage', () => {
     expect(screen.queryByText('Adó')).toBeNull();
     expect(screen.getByText('-5.000,-').className).toContain('neg');
     expect(screen.getByText('900.000,-')).toBeTruthy();
+    // a diagram adatai táblázatként is elérhetők
+    expect(screen.getByRole('table', { name: 'Kiadások kategóriák szerint' })).toBeTruthy();
   });
 });

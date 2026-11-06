@@ -10,7 +10,11 @@ export default function StatsPage() {
   const [sel, setSel] = useState(null); // kiválasztott hónap indexe a kategória-diagramhoz
 
   useEffect(() => {
-    api.get('/stats').then((s) => { setStats(s); setSel(s.months.length - 1); }).catch((e) => setError(e.message));
+    let stale = false;
+    api.get('/stats')
+      .then((s) => { if (!stale) { setStats(s); setSel(s.months.length - 1); } })
+      .catch((e) => !stale && setError(e.message));
+    return () => { stale = true; };
   }, []);
 
   const trend = useMemo(() => (stats ? trendData(stats.months) : []), [stats]);

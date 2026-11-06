@@ -95,3 +95,11 @@ fieldset { border: 1px solid var(--line); border-radius: 8px; color: var(--muted
 @media (max-width: 520px) { .cmp .num { min-width: 0; font-size: 0.78rem; } }
 .form.row { flex-direction: row; align-items: flex-end; margin-top: 0; }
 .chart { width: 100%; min-width: 0; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.data-table { margin-top: 0.6rem; font-size: 0.85rem; color: var(--muted); }
+.data-table summary { cursor: pointer; padding: 0.3rem 0; }
+.data-table table { width: 100%; border-collapse: collapse; margin-top: 0.4rem; }
+.data-table th, .data-table td { text-align: right; padding: 0.3rem 0.4rem; border-bottom: 1px solid var(--line); font-weight: normal; font-variant-numeric: tabular-nums; }
+.data-table th:first-child, .data-table tbody th { text-align: left; color: var(--text); }
+.data-table summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

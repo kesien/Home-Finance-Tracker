@@ -7,6 +7,9 @@ export function trendData(months) {
   return months.map((m) => ({ label: shortLabel(m), income: m.totalIncome, expense: m.totalExpense, savings: m.savingsBalance }));
 }
 
+/** Egy bevételi név kulcsa a sor-objektumban; az előtag miatt nem ütközhet a `label` mezővel. */
+export const incomeKey = (name) => `inc:${name}`;
+
 /** Bevételi összetétel: soronként egy hónap, oszloponként egy bevételi név (azonos nevek összeadva). */
 export function incomeComposition(months) {
   const names = [];
@@ -14,7 +17,7 @@ export function incomeComposition(months) {
     const row = { label: shortLabel(m) };
     for (const i of m.incomes) {
       if (!names.includes(i.name)) names.push(i.name);
-      row[i.name] = (row[i.name] ?? 0) + i.amount;
+      row[incomeKey(i.name)] = (row[incomeKey(i.name)] ?? 0) + i.amount;
     }
     return row;
   });

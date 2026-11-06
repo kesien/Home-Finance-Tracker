@@ -46,11 +46,11 @@ export default function DashboardPage() {
       {title}
       <div className="grid cards">
         <div className="card"><span className="muted">Összes bevétel</span><strong className="big pos">{formatMoney(summary.totalIncome)}</strong></div>
-        <div className="card"><span className="muted">Összes kiadás</span><strong className="big neg">{formatMoney(summary.totalExpense)}</strong></div>
+        <div className="card"><span className="muted">Összes kiadás</span><strong className={`big ${summary.totalExpense > 0 ? 'neg' : ''}`}>{formatMoney(summary.totalExpense)}</strong></div>
         <div className="card"><span className="muted">Fennmaradó</span><strong className={`big ${signClass(summary.remaining)}`}>{formatMoney(summary.remaining)}</strong></div>
         <div className="card"><span className="muted">Hátralévő kiadás</span><strong className="big">{formatMoney(summary.unpaid)}</strong></div>
         <div className="card"><span className="muted">Számlán</span><strong className={`big ${signClass(data.month.accountBalance)}`}>{formatMoney(data.month.accountBalance)}</strong></div>
-        <div className="card"><span className="muted">Megtakarítás</span><strong className="big">{formatMoney(data.month.savingsBalance)}</strong></div>
+        <div className="card"><span className="muted">Megtakarítás</span><strong className={`big ${signClass(data.month.savingsBalance)}`}>{formatMoney(data.month.savingsBalance)}</strong></div>
       </div>
 
       <section>
