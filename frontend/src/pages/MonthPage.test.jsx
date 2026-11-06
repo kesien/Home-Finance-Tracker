@@ -82,4 +82,35 @@ describe('MonthPage', () => {
     const body = JSON.parse(calls.find(([u, m]) => u === '/api/expenses/4' && m === 'PATCH')[2]);
     expect(body).toMatchObject({ end_year: null, end_month: null });
   });
+
+  it('mentés közbeni hónapváltás után az új hónap tartalma marad', async () => {
+    let releasePatch;
+    const nov = detail(11, 'Novemberi tétel');
+    vi.stubGlobal('fetch', vi.fn((url, opts) => {
+      if (url === '/api/categories') return json(cats);
+      if (opts?.method === 'PATCH') return new Promise((r) => { releasePatch = () => r({ ok: true, status: 200, json: () => Promise.resolve({}) }); });
+      if (url === '/api/months/2026/11') return json(nov);
+      if (url === '/api/months/2026/10') return json(detail(10, 'Októberi tétel'));
+    }));
+    mount('/honap/2026/11');
+    await screen.findByText('Novemberi tétel');
+    fireEvent.click(screen.getByLabelText('Megjelölés kifizetettnek'));
+    fireEvent.click(screen.getByLabelText('Előző hónap'));
+    await screen.findByText('Októberi tétel');
+    releasePatch();
+    await new Promise((r) => setTimeout(r, 30));
+    expect(screen.getByText('Októberi tétel')).toBeTruthy();
+    expect(screen.queryByText('Novemberi tétel')).toBeNull();
+  });
+
+  it('a Sheet bezárásakor a fókusz a nyitó elemre kerül', async () => {
+    vi.stubGlobal('fetch', vi.fn((url) => (url === '/api/categories' ? json(cats) : json(detail(4, null)))));
+    mount('/honap/2026/4');
+    await screen.findByText('Még nincs bevétel.');
+    const opener = screen.getAllByText('+ Új')[0];
+    opener.focus();
+    fireEvent.click(opener);
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    await waitFor(() => expect(document.activeElement).toBe(opener));
+  });
 });

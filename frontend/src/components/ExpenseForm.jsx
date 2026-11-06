@@ -109,7 +109,7 @@ export default function ExpenseForm({ initial, categories, year, month, onCatego
             )}
           </fieldset>
         )}
-        {error && <p className="error">{error}</p>}
+        {error && <p className="error" role="alert">{error}</p>}
         <div className="actions">
           {initial && <button type="button" className="btn danger" onClick={remove} disabled={saving}>Törlés</button>}
           <button className="btn primary" disabled={saving}>Mentés</button>

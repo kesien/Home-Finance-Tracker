@@ -63,6 +63,10 @@ export default function MonthPage() {
     }
   }, [year, month]);
 
+  // A mutáció közben hónapot váltó felhasználónál az *aktuális* hónap load-ját kell hívni, nem a régi rendert.
+  const loadRef = useRef(load);
+  loadRef.current = load;
+
   useEffect(() => {
     setStatus('loading');
     setData(null);
@@ -80,7 +84,7 @@ export default function MonthPage() {
   async function mutate(fn) {
     await fn();
     setForm(null);
-    await load();
+    await loadRef.current();
   }
   async function act(fn) {
     if (busy) return;
@@ -104,7 +108,7 @@ export default function MonthPage() {
   );
 
   if (status === 'loading') return <>{header}<p className="muted">Betöltés…</p></>;
-  if (status === 'error') return <>{header}<p className="error">{error}</p></>;
+  if (status === 'error') return <>{header}<p className="error" role="alert">{error}</p><button className="btn" onClick={() => { setStatus('loading'); setError(''); load(); }}>Újra</button></>;
   if (status === 'missing') {
     return (
       <>

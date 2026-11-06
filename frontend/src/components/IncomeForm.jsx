@@ -44,7 +44,7 @@ export default function IncomeForm({ initial, onSave, onDelete, onClose }) {
           <button type="button" className={type === 'fixed' ? 'on' : ''} onClick={() => setType('fixed')}>Fix</button>
           <button type="button" className={type === 'variable' ? 'on' : ''} onClick={() => setType('variable')}>Változó</button>
         </div>
-        {error && <p className="error">{error}</p>}
+        {error && <p className="error" role="alert">{error}</p>}
         <div className="actions">
           {initial && <button type="button" className="btn danger" onClick={remove} disabled={saving}>Törlés</button>}
           <button className="btn primary" disabled={saving}>Mentés</button>

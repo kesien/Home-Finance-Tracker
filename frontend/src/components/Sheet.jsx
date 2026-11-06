@@ -7,10 +7,9 @@ const FOCUSABLE = 'button:not(:disabled), input:not(:disabled), select:not(:disa
 export default function Sheet({ title, onClose, children }) {
   const ref = useRef(null);
 
-  useEffect(() => {
-    const previous = document.activeElement;
-    return () => previous?.focus?.();
-  }, []);
+  // Renderkor olvassuk ki: az autoFocus még a commit előtt nem mozdította el a fókuszt.
+  const opener = useRef(document.activeElement);
+  useEffect(() => () => { if (opener.current?.isConnected) opener.current.focus(); }, []);
 
   function onKeyDown(e) {
     if (e.key === 'Escape') return onClose();
