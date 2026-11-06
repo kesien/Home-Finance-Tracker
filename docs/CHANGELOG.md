@@ -2,3 +2,6 @@
 
 ## 2026-11-06
 - Fázis 0: projektváz (backend, frontend, SQLite kapcsolat, Docker Compose, lint, teszt).
+
+## 2026-11-06
+- Fázis 1: séma, hónap/bevétel/kiadás/kategória/beállítás API, hónap-másolás, éves/lejáratos tételek, átlag, kifizetve; egység- és API-tesztek.
