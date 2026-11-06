@@ -16,6 +16,7 @@ export default function ExpenseForm({ initial, categories, year, month, onCatego
   const [endYear, setEndYear] = useState(initial?.end_year ?? year);
   const [endMonth, setEndMonth] = useState(initial?.end_month ?? month);
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
 
   async function addCategory() {
     if (!newCat?.trim()) return;
@@ -34,14 +35,33 @@ export default function ExpenseForm({ initial, categories, year, month, onCatego
     const value = parseAmount(amount);
     if (!name.trim()) return setError('Add meg a nevet');
     if (value === null) return setError('Az összeg egész szám legyen (Ft)');
+    const yearOk = (y) => Number.isInteger(Number(y)) && Number(y) >= 2000 && Number(y) <= 2100;
+    if (type === 'yearly' && !yearOk(dueYear)) return setError('Az esedékesség éve 2000 és 2100 közötti legyen');
+    if (type === 'monthly' && hasEnd && !yearOk(endYear)) return setError('A lejárat éve 2000 és 2100 közötti legyen');
+    if (!categoryId) return setError('Válassz kategóriát');
     const body = { name: name.trim(), amount: value, type, category_id: Number(categoryId) };
     if (type === 'yearly') Object.assign(body, { due_year: Number(dueYear), due_month: Number(dueMonth) });
     else if (hasEnd) Object.assign(body, { end_year: Number(endYear), end_month: Number(endMonth) });
+    else Object.assign(body, { end_year: null, end_month: null }); // meglévő lejárat törlése
+    if (saving) return;
+    setSaving(true);
     try {
       await onSave(body);
     } catch (err) {
       setError(err.message);
+      setSaving(false);
     }
+  }
+
+  async function remove() {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await onDelete();
+    } catch (err) {
+      setError(err.message);
+    }
+    setSaving(false);
   }
 
   const monthSelect = (value, set) => (
@@ -91,8 +111,8 @@ export default function ExpenseForm({ initial, categories, year, month, onCatego
         )}
         {error && <p className="error">{error}</p>}
         <div className="actions">
-          {initial && <button type="button" className="btn danger" onClick={onDelete}>Törlés</button>}
-          <button className="btn primary">Mentés</button>
+          {initial && <button type="button" className="btn danger" onClick={remove} disabled={saving}>Törlés</button>}
+          <button className="btn primary" disabled={saving}>Mentés</button>
         </div>
       </form>
     </Sheet>

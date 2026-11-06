@@ -16,3 +16,11 @@
 ## Kimaradt / későbbre
 - A Hónapok oldal és az új hónap létrehozása a hónapok listájából (Fázis 3); a Főoldal (Fázis 4).
 - Nincs automatizált böngészős e2e teszt; kézi ellenőrzés Playwrighttal (mobil + asztali nézet), hibamentes konzollal.
+
+## Review 1. kör után
+- Versenyhelyzet: a `MonthPage` csak a legutóbb indított betöltés eredményét fogadja el; hónapváltáskor az adat, hiba és űrlap nullázódik.
+- Mentési hiba az űrlapban jelenik meg (`mutate` továbbdobja, `act` az oldalszintű hibasávba írja); dupla küldés ellen `saving`/`busy` állapot.
+- Meglévő lejárat törölhető (`end_year/end_month: null`); év mezők kliensoldali ellenőrzése.
+- Sikeres mentés utáni sikertelen újratöltés nem dobja el a megjelenített adatot.
+- Hozzáférhetőség: a listasorok gombok, `Sheet`: Esc, fókuszcsapda, fókuszvisszaadás; FAB `aria-expanded`; hibasáv `role="alert"` + Bezár gomb.
+- `MonthPage.test.jsx`: regressziós tesztek (verseny, űrlaphiba, Esc, lejárat törlése).

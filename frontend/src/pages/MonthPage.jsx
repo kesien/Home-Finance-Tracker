@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { formatMoney, monthLabel, parseAmount, shiftMonth, categoryColor } from '../format.js';
@@ -37,26 +37,37 @@ export default function MonthPage() {
   const [error, setError] = useState('');
   const [form, setForm] = useState(null); // {kind:'income'|'expense', item?}
   const [fabOpen, setFabOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
 
+  // Csak a legutóbb indított betöltés eredménye érvényes: lassú, korábbi hónap válasza ne írja felül az újat.
+  const reqId = useRef(0);
   const load = useCallback(async () => {
+    const my = ++reqId.current;
     try {
       const [cats, detail] = await Promise.all([api.get('/categories'), api.get(`/months/${year}/${month}`)]);
+      if (my !== reqId.current) return;
       setCategories(cats);
       setData(detail);
       setStatus('ready');
     } catch (e) {
+      if (my !== reqId.current) return;
       if (e.status === 404) {
+        setData(null);
         setCategories(await api.get('/categories').catch(() => []));
-        setStatus('missing');
+        if (my === reqId.current) setStatus('missing');
       } else {
         setError(e.message);
-        setStatus('error');
+        // Ha már van megjelenített adat, megtartjuk, csak a hibasávot mutatjuk.
+        setStatus((st) => (st === 'ready' ? 'ready' : 'error'));
       }
     }
   }, [year, month]);
 
   useEffect(() => {
     setStatus('loading');
+    setData(null);
+    setError('');
+    setForm(null);
     load();
   }, [load]);
 
@@ -65,13 +76,22 @@ export default function MonthPage() {
     navigate(`/honap/${n.year}/${n.month}`);
   };
 
-  async function run(fn) {
+  // mutate: hibát továbbdobja (az űrlap a saját hibasávjában mutatja); act: oldalszintű hibasávval.
+  async function mutate(fn) {
+    await fn();
+    setForm(null);
+    await load();
+  }
+  async function act(fn) {
+    if (busy) return;
+    setBusy(true);
+    setError('');
     try {
-      await fn();
-      setForm(null);
-      await load();
+      await mutate(fn);
     } catch (e) {
       setError(e.message);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -92,7 +112,7 @@ export default function MonthPage() {
         <div className="card empty">
           <p>Ez a hónap még nincs létrehozva.</p>
           <p className="muted">Létrehozáskor az előző hónap fix tételei átmásolódnak.</p>
-          <button className="btn primary" onClick={() => run(() => api.post('/months', { year, month }))}>Hónap létrehozása</button>
+          <button className="btn primary" disabled={busy} onClick={() => act(() => api.post('/months', { year, month }))}>Hónap létrehozása</button>
           {error && <p className="error">{error}</p>}
         </div>
       </>
@@ -104,13 +124,17 @@ export default function MonthPage() {
   const catTotals = Object.entries(summary.categoryTotals)
     .map(([id, total]) => ({ id: Number(id), name: catById[id]?.name ?? '?', total }))
     .sort((a, b) => b.total - a.total);
-  const patchBalance = (body) => run(() => api.patch(`/months/${year}/${month}`, body));
-  const togglePaid = (e) => run(() => api.patch(`/expenses/${e.id}`, { paid: !e.paid }));
+  const patchBalance = (body) => act(() => api.patch(`/months/${year}/${month}`, body));
+  const togglePaid = (e) => act(() => api.patch(`/expenses/${e.id}`, { paid: !e.paid }));
 
   return (
     <>
       {header}
-      {error && <p className="error" onClick={() => setError('')}>{error}</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error} <button className="btn" onClick={() => setError('')}>Bezár</button>
+        </p>
+      )}
 
       <div className="grid cards">
         <div className="card"><span className="muted">Bevétel</span><strong className="big pos">{formatMoney(summary.totalIncome)}</strong></div>
@@ -125,9 +149,11 @@ export default function MonthPage() {
         <div className="section-head"><h2>Bevételek</h2><button className="btn" onClick={() => setForm({ kind: 'income' })}>+ Új</button></div>
         <ul className="list">
           {incomes.map((i) => (
-            <li key={i.id} className="item" onClick={() => setForm({ kind: 'income', item: i })}>
-              <div><div>{i.name}</div><div className="muted small">{i.type === 'fixed' ? 'fix' : 'változó'}</div></div>
-              <strong className="pos">{formatMoney(i.amount)}</strong>
+            <li key={i.id} className="item">
+              <button type="button" className="row-btn" onClick={() => setForm({ kind: 'income', item: i })}>
+                <span className="grow"><span>{i.name}</span><span className="muted small block">{i.type === 'fixed' ? 'fix' : 'változó'}</span></span>
+                <strong className="pos">{formatMoney(i.amount)}</strong>
+              </button>
             </li>
           ))}
           {incomes.length === 0 && <li className="muted item">Még nincs bevétel.</li>}
@@ -142,17 +168,19 @@ export default function MonthPage() {
         <ul className="list">
           {expenses.map((e) => (
             <li key={e.id} className={`item ${e.counted ? '' : 'dim'}`}>
-              <button className={`check-btn ${e.paid ? 'on' : ''}`} onClick={() => togglePaid(e)} aria-label={e.paid ? 'Kifizetve – visszavonás' : 'Megjelölés kifizetettnek'} aria-pressed={e.paid}>{e.paid ? '✓' : ''}</button>
-              <div className="grow" onClick={() => setForm({ kind: 'expense', item: e })}>
-                <div>{e.name}</div>
-                <div className="muted small">
+              <button className={`check-btn ${e.paid ? 'on' : ''}`} onClick={() => togglePaid(e)} aria-label={e.paid ? 'Kifizetve – visszavonás' : 'Megjelölés kifizetettnek'} aria-pressed={e.paid} disabled={busy}>{e.paid ? '✓' : ''}</button>
+              <button type="button" className="row-btn" onClick={() => setForm({ kind: 'expense', item: e })}>
+                <span className="grow">
+                <span>{e.name}</span>
+                <span className="muted small block">
                   <span className="dot" style={{ background: categoryColor(e.category_id) }} />
                   {catById[e.category_id]?.name}
                   {e.type === 'yearly' && ` · éves, esedékes: ${monthLabel(e.due_year, e.due_month)}${e.counted ? '' : ' (ebben a hónapban nem számít)'}`}
                   {e.type === 'monthly' && e.end_year != null && ` · lejár: ${monthLabel(e.end_year, e.end_month)}`}
-                </div>
-              </div>
-              <strong onClick={() => setForm({ kind: 'expense', item: e })}>{formatMoney(e.amount)}</strong>
+                </span>
+                </span>
+                <strong>{formatMoney(e.amount)}</strong>
+              </button>
             </li>
           ))}
           {expenses.length === 0 && <li className="muted item">Még nincs kiadás.</li>}
@@ -172,22 +200,22 @@ export default function MonthPage() {
         </ul>
       </section>
 
-      <div className="fab-wrap">
+      <div className="fab-wrap" onKeyDown={(e) => e.key === 'Escape' && setFabOpen(false)}>
         {fabOpen && (
           <div className="fab-menu">
             <button className="btn" onClick={() => { setFabOpen(false); setForm({ kind: 'income' }); }}>Bevétel</button>
             <button className="btn" onClick={() => { setFabOpen(false); setForm({ kind: 'expense' }); }}>Kiadás</button>
           </div>
         )}
-        <button className="fab" onClick={() => setFabOpen(!fabOpen)} aria-label="Új tétel">+</button>
+        <button className="fab" onClick={() => setFabOpen(!fabOpen)} aria-label="Új tétel" aria-expanded={fabOpen}>+</button>
       </div>
 
       {form?.kind === 'income' && (
         <IncomeForm
           initial={form.item}
           onClose={() => setForm(null)}
-          onSave={(b) => run(() => (form.item ? api.patch(`/incomes/${form.item.id}`, b) : api.post(`/months/${year}/${month}/incomes`, b)))}
-          onDelete={() => confirm('Biztosan törlöd?') && run(() => api.del(`/incomes/${form.item.id}`))}
+          onSave={(b) => mutate(() => (form.item ? api.patch(`/incomes/${form.item.id}`, b) : api.post(`/months/${year}/${month}/incomes`, b)))}
+          onDelete={() => confirm('Biztosan törlöd?') && mutate(() => api.del(`/incomes/${form.item.id}`))}
         />
       )}
       {form?.kind === 'expense' && (
@@ -198,8 +226,8 @@ export default function MonthPage() {
           month={month}
           onCategoryCreated={async () => setCategories(await api.get('/categories'))}
           onClose={() => setForm(null)}
-          onSave={(b) => run(() => (form.item ? api.patch(`/expenses/${form.item.id}`, b) : api.post(`/months/${year}/${month}/expenses`, b)))}
-          onDelete={() => confirm('Biztosan törlöd?') && run(() => api.del(`/expenses/${form.item.id}`))}
+          onSave={(b) => mutate(() => (form.item ? api.patch(`/expenses/${form.item.id}`, b) : api.post(`/months/${year}/${month}/expenses`, b)))}
+          onDelete={() => confirm('Biztosan törlöd?') && mutate(() => api.del(`/expenses/${form.item.id}`))}
         />
       )}
     </>
