@@ -24,3 +24,7 @@
 ## 2026-11-06
 - Fázis 5 mergelve.
 - Fázis 6: napi automatikus mentés (30 megőrzése), JSON export/import (atomikus, import előtti mentéssel), Beállítások oldal.
+
+## 2026-11-06
+- Fázis 6 mergelve.
+- Fázis 7: végleges Dockerfile (nem-root), teljes README, böngészős füstteszt, elfogadási kritériumok ellenőrzése.

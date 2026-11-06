@@ -26,4 +26,7 @@
 - `MonthPage.test.jsx`: regressziós tesztek (verseny, űrlaphiba, Esc, lejárat törlése).
 
 ## Review 2. kör után (nyitott pontok)
-A 2. kör egy új Should-ot talált: (1) mentés közbeni hónapváltás után a régi hónap tartalma maradt, (2) a `Sheet` nem adta vissza a fókuszt. Mindkettő javítva (`loadRef`, a nyitó elem renderkori mentése, regressziós tesztekkel), de a javítást **reviewer már nem ellenőrizte** (a 2 körös keret kimerült), ezért a PR nem lett mergelve. Nit-ek közül megoldva: `role="alert"` az űrlaphibákon, „Újra” gomb betöltési hibánál. Nyitva (Nit): overlay-kattintás megerősítés nélkül zár.
+A 2. kör egy új Should-ot talált: (1) mentés közbeni hónapváltás után a régi hónap tartalma maradt, (2) a `Sheet` nem adta vissza a fókuszt. Mindkettő javítva (`loadRef`, a nyitó elem renderkori mentése, regressziós tesztekkel), de a javítást **reviewer már nem ellenőrizte** (a 2 körös keret kimerült), ezért a PR a specifikáció szerint nyitva maradt. Nit-ek közül megoldva: `role="alert"` az űrlaphibákon, „Újra” gomb betöltési hibánál. Nyitva (Nit): overlay-kattintás megerősítés nélkül zár.
+
+## Lezárás (3. kör)
+A tulajdonos kifejezetten kért egy harmadik, a 2 körös kereten kívüli review kört. Az új Should-javítást a 3. kör megerősítette (nincs Blocker/Should), ezután a PR (#3) mergelve lett. A 2 körös keret átlépése tehát tudatos, dokumentált eltérés.
