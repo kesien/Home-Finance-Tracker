@@ -24,5 +24,13 @@ export function createApp({ db, staticDir }) {
     app.get('*', (_req, res) => res.sendFile(path.join(staticDir, 'index.html')));
   }
 
+  // Hibás JSON / túl nagy törzs stb.: mindig JSON válasz, stack trace nélkül.
+  // eslint-disable-next-line no-unused-vars
+  app.use((err, _req, res, _next) => {
+    const status = err.status >= 400 && err.status < 500 ? err.status : 500;
+    if (status === 500) console.error(err);
+    res.status(status).json({ error: status === 500 ? 'Szerverhiba' : 'Érvénytelen kérés' });
+  });
+
   return app;
 }

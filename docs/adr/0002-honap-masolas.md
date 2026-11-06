@@ -13,3 +13,7 @@
 **Átlag:** az utolsó N (alap: 3) *létező* hónap átlaga a megadott hónapot is beleértve; ha kevesebb van, az összes. Két érték: összes bevétel és csak a változó bevételek (az előrejelzés utóbbit használja).
 
 **Pénz:** egész forint (`INTEGER`), az API is csak egész számot fogad.
+
+**Következmény (éves tételek):** az esedékesség után az éves tétel nem másolódik tovább, a következő évi esedékességet kézzel kell felvenni. Az előrejelzés (Fázis 5) ezért csak az aktuális hónapban felvett éves tételeket látja.
+
+**Bemenet-validáció:** az összegek biztonságos egészek, felső korlát 10^12 Ft; a hibás kérések mindig JSON `{error}` választ kapnak.

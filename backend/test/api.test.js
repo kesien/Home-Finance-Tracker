@@ -153,3 +153,30 @@ describe('átlag és beállítások', () => {
     expect((await api.get('/api/settings')).body).toEqual({ avgN: 3, forecastThreshold: 0 });
   });
 });
+
+describe('robusztus bemenet', () => {
+  it('hibás JSON törzs JSON 400-at ad', async () => {
+    const r = await api.post('/api/months').set('Content-Type', 'application/json').send('{bad');
+    expect(r.status).toBe(400);
+    expect(r.body.error).toBeTruthy();
+    expect(r.headers['content-type']).toMatch(/json/);
+  });
+  it('nem objektum törzs 400', async () => {
+    expect((await api.put('/api/settings').set('Content-Type', 'application/json').send('[]')).status).toBe(400);
+    expect((await api.post('/api/months').set('Content-Type', 'application/json').send('null')).status).toBe(400);
+  });
+  it('óriás / lebegőpontos összeg és egyenleg elutasítva', async () => {
+    await newMonth(2026, 11);
+    const post = (b) => api.post('/api/months/2026/11/incomes').send(b);
+    expect((await post({ name: 'x', amount: 1e300 })).status).toBe(400);
+    expect((await post({ name: 'x', amount: 2 ** 60 })).status).toBe(400);
+    expect((await api.patch('/api/months/2026/11').send({ accountBalance: 1e300 })).status).toBe(400);
+  });
+  it('rossz típusú category_id és paid 400, nem 500', async () => {
+    await newMonth(2026, 11);
+    const post = (b) => api.post('/api/months/2026/11/expenses').send({ name: 'x', amount: 1, ...b });
+    expect((await post({ category_id: {} })).status).toBe(400);
+    expect((await post({ category_id: '1' })).status).toBe(400);
+    expect((await post({ paid: 'false' })).status).toBe(400);
+  });
+});

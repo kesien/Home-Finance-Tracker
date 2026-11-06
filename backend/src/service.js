@@ -10,7 +10,13 @@ const bad = (m) => new HttpError(400, m);
 const notFound = (m) => new HttpError(404, m);
 
 // ---------- validáció ----------
-const isInt = (v) => Number.isInteger(v);
+// Biztonságos egész + felső korlát (1000 milliárd Ft): a SQLite nagy/lebegőpontos értékeket REAL-ként tárolna.
+const MAX_AMOUNT = 1e12;
+const isInt = (v) => Number.isSafeInteger(v) && Math.abs(v) <= MAX_AMOUNT;
+const reqBody = (b) => {
+  if (b === null || typeof b !== 'object' || Array.isArray(b)) throw bad('A kérés törzse JSON objektum legyen');
+  return b;
+};
 const reqString = (v, f) => {
   if (typeof v !== 'string' || !v.trim()) throw bad(`${f}: kötelező szöveg`);
   return v.trim();
@@ -34,6 +40,7 @@ export function createService(db) {
     return { avgN: s.avgN, forecastThreshold: s.forecastThreshold };
   };
   function updateSettings(body) {
+    reqBody(body);
     const cur = getSettings();
     const next = { ...cur, ...body };
     if (!isInt(next.avgN) || next.avgN < 1 || next.avgN > 60) throw bad('avgN: 1–60 közötti egész');
@@ -56,7 +63,7 @@ export function createService(db) {
       )
       .all();
   function createCategory(body) {
-    const name = reqString(body.name, 'name');
+    const name = reqString(reqBody(body).name, 'name');
     try {
       const r = db.prepare('INSERT INTO categories (name) VALUES (?)').run(name);
       return { id: Number(r.lastInsertRowid), name, itemCount: 0 };
@@ -66,7 +73,7 @@ export function createService(db) {
     }
   }
   function renameCategory(id, body) {
-    const name = reqString(body.name, 'name');
+    const name = reqString(reqBody(body).name, 'name');
     try {
       const r = db.prepare('UPDATE categories SET name = ? WHERE id = ?').run(name, id);
       if (!r.changes) throw notFound('Nincs ilyen kategória');
@@ -146,7 +153,8 @@ export function createService(db) {
   }
 
   /** Új hónap; ha van korábbi hónap, annak fix tételei másolódnak (egy tranzakcióban). */
-  function createMonth({ year, month }) {
+  function createMonth(body) {
+    const { year, month } = reqBody(body);
     reqYM(year, month);
     if (getMonthRow(year, month)) throw new HttpError(409, 'Ez a hónap már létezik');
     return db.transaction(() => {
@@ -169,6 +177,7 @@ export function createService(db) {
   }
 
   function updateBalances(year, month, body) {
+    reqBody(body);
     const m = mustMonth(year, month);
     const acc = body.accountBalance ?? m.account_balance;
     const sav = body.savingsBalance ?? m.savings_balance;
@@ -184,6 +193,7 @@ export function createService(db) {
 
   // ---------- bevételek ----------
   function parseIncome(b) {
+    reqBody(b);
     return {
       name: reqString(b.name, 'name'),
       amount: reqAmount(b.amount),
@@ -199,7 +209,7 @@ export function createService(db) {
   function updateIncome(id, body) {
     const cur = db.prepare('SELECT * FROM incomes WHERE id = ?').get(id);
     if (!cur) throw notFound('Nincs ilyen bevétel');
-    const i = parseIncome({ ...cur, ...body });
+    const i = parseIncome({ ...cur, ...reqBody(body) });
     db.prepare('UPDATE incomes SET name = ?, amount = ?, type = ? WHERE id = ?').run(i.name, i.amount, i.type, id);
     return { ...cur, ...i };
   }
@@ -209,6 +219,8 @@ export function createService(db) {
 
   // ---------- kiadások ----------
   function parseExpense(b) {
+    reqBody(b);
+    if (b.paid != null && typeof b.paid !== 'boolean') throw bad('paid: true/false kell');
     const type = oneOf(b.type ?? 'monthly', ['monthly', 'yearly'], 'type');
     const e = {
       name: reqString(b.name, 'name'),
@@ -218,7 +230,9 @@ export function createService(db) {
       paid: b.paid ? 1 : 0,
       due_year: null, due_month: null, end_year: null, end_month: null,
     };
-    if (!db.prepare('SELECT 1 FROM categories WHERE id = ?').get(e.category_id)) throw bad('category_id: nincs ilyen kategória');
+    if (!isInt(e.category_id) || !db.prepare('SELECT 1 FROM categories WHERE id = ?').get(e.category_id)) {
+      throw bad('category_id: válassz létező kategóriát');
+    }
     if (type === 'yearly') {
       reqYM(b.due_year, b.due_month, 'Esedékesség: ');
       e.due_year = b.due_year;
@@ -250,6 +264,7 @@ export function createService(db) {
   function updateExpense(id, body) {
     const cur = getExpense(id);
     if (!cur) throw notFound('Nincs ilyen kiadás');
+    reqBody(body);
     // Típusváltásnál a másik típus mezői törlődnek (parseExpense nullázza), ezért a régi mezőket csak azonos típusnál örökítjük.
     const base = body.type && body.type !== cur.type ? { name: cur.name, amount: cur.amount, category_id: cur.category_id, paid: cur.paid } : cur;
     const e = parseExpense({ ...base, ...body });
