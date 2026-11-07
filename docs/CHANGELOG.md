@@ -28,3 +28,6 @@
 ## 2026-11-06
 - Fázis 6 mergelve.
 - Fázis 7: végleges Dockerfile (nem-root), teljes README, böngészős füstteszt, elfogadási kritériumok ellenőrzése.
+
+## 2026-11-07
+- Készpénz egyenleg: új havi mező (migrációval), „Összes pénz” kártyák, az előrejelzés kiindulóegyenlege és az export/import is tartalmazza.

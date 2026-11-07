@@ -40,14 +40,15 @@ Az adatbázis és a mentések a `finance-data` Docker volume-ban vannak (`/data`
 1. Nyisd meg az appot, és a **Hónapok** oldalon hozd létre az első hónapot.
 2. A **Hónap** nézetben vidd fel a bevételeket (fix / változó) és a kiadásokat (havi / éves). Mobilon a `+` gombbal pár koppintás egy tétel.
 3. Új hónap létrehozásakor az előző hónapból átmásolódnak a **fix bevételek**, az összes **havi kiadás** (a lejárati dátumukkal; a már lejártak nem) és azok az **éves kiadások**, amelyeknek az esedékessége az új hónap vagy később van. A változó bevételek üresen indulnak, a „kifizetve” jelölés mindig törlődik. A másolás után a hónapok függetlenek.
-4. Kiadásnál kapcsolható a „kifizetve” jelölés (egy koppintás), a Főoldal mutatja a hátralévő kiadásokat.
+4. A Hónap nézetben kézzel frissítheted a **számlán**, a **megtakarítás** és a **készpénz** egyenleget; az „Összes pénz” kártya ezek összege, és az előrejelzés is ebből indul.
+5. Kiadásnál kapcsolható a „kifizetve” jelölés (egy koppintás), a Főoldal mutatja a hátralévő kiadásokat.
 
 ### Hogyan számol az app
 
 - **Éves tétel:** az összege nincs 12-vel elosztva; kizárólag az esedékes hónap kiadásai között szerepel, teljes összegben.
 - **Havi tétel lejárattal** (pl. hitel): az utolsó fizetendő hónapig számít; lejárat nélkül határozatlan ideig.
 - **Átlag:** a bevételek átlaga az utolsó *N* hónap alapján (alapérték 3, a Beállításokban állítható); ha kevesebb hónap van, az összes elérhetőé.
-- **Előrejelzés (12 hónap):** kiindulópont az aktuális hónap számlán + megtakarítás egyenlege; havi bevétel = fix bevételek + a változó bevételek átlaga; kiadás = az aktuális hónap havi kiadásai (lejáratukig, lejárat nélkül mindig) + az adott hónapban esedékes éves tételek. Ha az egyenleg a küszöb (alap: 0 Ft) alá esik, az oldal figyelmeztet. Az éves tételek nem ismétlődnek automatikusan: az a tétel szerepel, amelyik az aktuális hónapban fel van véve.
+- **Előrejelzés (12 hónap):** kiindulópont az aktuális hónap számlán + megtakarítás + készpénz egyenlege; havi bevétel = fix bevételek + a változó bevételek átlaga; kiadás = az aktuális hónap havi kiadásai (lejáratukig, lejárat nélkül mindig) + az adott hónapban esedékes éves tételek. Ha az egyenleg a küszöb (alap: 0 Ft) alá esik, az oldal figyelmeztet. Az éves tételek nem ismétlődnek automatikusan: az a tétel szerepel, amelyik az aktuális hónapban fel van véve.
 - **Kategória:** egy kiadás pontosan egy kategóriába tartozik; kategória csak akkor törölhető, ha nincs hozzá tétel.
 
 ## Beállítások

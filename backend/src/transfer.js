@@ -14,6 +14,7 @@ export function exportAll(db) {
     month: m.month,
     accountBalance: m.account_balance,
     savingsBalance: m.savings_balance,
+    cashBalance: m.cash_balance,
     incomes: db.prepare('SELECT name, amount, type FROM incomes WHERE month_id = ? ORDER BY id').all(m.id),
     expenses: db
       .prepare(
@@ -66,7 +67,7 @@ export function validateImport(data) {
     const key = `${m.year}-${m.month}`;
     if (monthKeys.has(key)) throw bad(`${at}: ismétlődő hónap (${key})`);
     monthKeys.add(key);
-    if (!isInt(m.accountBalance ?? 0) || !isInt(m.savingsBalance ?? 0)) throw bad(`${at}: az egyenleg egész szám`);
+    if (!isInt(m.accountBalance ?? 0) || !isInt(m.savingsBalance ?? 0) || !isInt(m.cashBalance ?? 0)) throw bad(`${at}: az egyenleg egész szám`);
     if (!Array.isArray(m.incomes) || !Array.isArray(m.expenses)) throw bad(`${at}: hiányzó incomes / expenses`);
     const incomes = m.incomes.map((x, j) => {
       if (!isObj(x)) throw bad(`${at}.incomes[${j}]: objektum kell`);
@@ -91,7 +92,7 @@ export function validateImport(data) {
       }
       return e;
     });
-    return { year: m.year, month: m.month, accountBalance: m.accountBalance ?? 0, savingsBalance: m.savingsBalance ?? 0, incomes, expenses };
+    return { year: m.year, month: m.month, accountBalance: m.accountBalance ?? 0, savingsBalance: m.savingsBalance ?? 0, cashBalance: m.cashBalance ?? 0, incomes, expenses };
   });
   return { settings: { avgN, forecastThreshold: threshold }, categories, months };
 }
@@ -107,14 +108,14 @@ export function applyImport(db, v) {
     const catId = new Map();
     const insC = db.prepare('INSERT INTO categories (name) VALUES (?)');
     for (const name of v.categories) catId.set(name.toLowerCase(), Number(insC.run(name).lastInsertRowid));
-    const insM = db.prepare('INSERT INTO months (year, month, account_balance, savings_balance) VALUES (?, ?, ?, ?)');
+    const insM = db.prepare('INSERT INTO months (year, month, account_balance, savings_balance, cash_balance) VALUES (?, ?, ?, ?, ?)');
     const insI = db.prepare('INSERT INTO incomes (month_id, name, amount, type) VALUES (?, ?, ?, ?)');
     const insE = db.prepare(
       `INSERT INTO expenses (month_id, name, amount, type, category_id, paid, due_year, due_month, end_year, end_month)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     );
     for (const m of v.months) {
-      const id = Number(insM.run(m.year, m.month, m.accountBalance, m.savingsBalance).lastInsertRowid);
+      const id = Number(insM.run(m.year, m.month, m.accountBalance, m.savingsBalance, m.cashBalance).lastInsertRowid);
       for (const i of m.incomes) insI.run(id, i.name, i.amount, i.type);
       for (const e of m.expenses) insE.run(id, e.name, e.amount, e.type, catId.get(e.category.toLowerCase()), e.paid ? 1 : 0, e.dueYear, e.dueMonth, e.endYear, e.endMonth);
     }

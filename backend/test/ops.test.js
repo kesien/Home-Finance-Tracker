@@ -24,7 +24,7 @@ async function seed() {
   await api.post('/api/months/2026/10/incomes').send({ name: 'Prémium', amount: 50000, type: 'variable' });
   await api.post('/api/months/2026/10/expenses').send({ name: 'CSOK hitel', amount: 120000, category_id: hitel, end_year: 2030, end_month: 5, paid: true });
   await api.post('/api/months/2026/10/expenses').send({ name: 'Adó', amount: 60000, type: 'yearly', due_year: 2027, due_month: 3 });
-  await api.patch('/api/months/2026/10').send({ accountBalance: 250000, savingsBalance: 900000 });
+  await api.patch('/api/months/2026/10').send({ accountBalance: 250000, savingsBalance: 900000, cashBalance: 40000 });
   await api.post('/api/months').send({ year: 2026, month: 11 });
   await api.put('/api/settings').send({ avgN: 5, forecastThreshold: -10000 });
 }
@@ -90,6 +90,7 @@ describe('export / import', () => {
     const after = (await api2.get('/api/export')).body;
     expect({ ...after, exportedAt: 0 }).toEqual({ ...before, exportedAt: 0 });
     expect((await api2.get('/api/stats')).body).toEqual(stats);
+    expect((await api2.get('/api/months/2026/10')).body.month.cashBalance).toBe(40000);
     expect((await api2.get('/api/settings')).body).toEqual({ avgN: 5, forecastThreshold: -10000 });
     // a kategória-hivatkozás és a lejárat megmaradt
     const okt = (await api2.get('/api/months/2026/10')).body;
@@ -203,5 +204,17 @@ describe('mentés – robusztusság (review)', () => {
     const r = await api.post('/api/import').set('Content-Type', 'application/json').send(JSON.stringify({ pad: 'x'.repeat(21 * 1024 * 1024) }));
     expect(r.status).toBe(413);
     expect(r.body.error).toContain('20 MB');
+  });
+});
+
+describe('készpénz – export/import visszafelé kompatibilitás', () => {
+  it('a készpénz nélküli (régi) export betölthető, a készpénz 0', async () => {
+    const old = { format: 'haztartasi-koltsegkovet', version: 1, categories: ['Lakás'], months: [{ year: 2026, month: 1, accountBalance: 5, savingsBalance: 6, incomes: [], expenses: [] }] };
+    expect((await api.post('/api/import').send(old)).status).toBe(200);
+    expect((await api.get('/api/months/2026/1')).body.month).toMatchObject({ accountBalance: 5, savingsBalance: 6, cashBalance: 0 });
+  });
+  it('nem egész készpénz az importban 400', async () => {
+    const bad = { format: 'haztartasi-koltsegkovet', version: 1, categories: [], months: [{ year: 2026, month: 1, cashBalance: 1.5, incomes: [], expenses: [] }] };
+    expect((await api.post('/api/import').send(bad)).status).toBe(400);
   });
 });

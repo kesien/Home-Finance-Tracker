@@ -8,7 +8,7 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 const cats = [{ id: 1, name: 'Egyéb', itemCount: 0 }, { id: 3, name: 'Hitel', itemCount: 1 }];
 const detail = (month, expenseName) => ({
-  month: { id: month, year: 2026, month, accountBalance: 0, savingsBalance: 0 },
+  month: { id: month, year: 2026, month, accountBalance: 100000, savingsBalance: 200000, cashBalance: 0 },
   incomes: [],
   expenses: expenseName ? [{ id: month, name: expenseName, amount: 1000, type: 'monthly', category_id: 3, paid: false, counted: true, end_year: null, end_month: null }] : [],
   summary: { totalIncome: 0, totalExpense: 1000, remaining: -1000, unpaid: 1000, categoryTotals: { 3: 1000 } },
@@ -112,5 +112,19 @@ describe('MonthPage', () => {
     fireEvent.click(opener);
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
     await waitFor(() => expect(document.activeElement).toBe(opener));
+  });
+
+  it('a készpénz egyenleg szerkeszthető, és az összes pénz tartalmazza', async () => {
+    const calls = [];
+    vi.stubGlobal('fetch', vi.fn((url, opts = {}) => {
+      calls.push([url, opts.method, opts.body]);
+      return json(url === '/api/categories' ? cats : opts.method === 'PATCH' ? {} : detail(4, null));
+    }));
+    mount('/honap/2026/4');
+    const cash = await screen.findByLabelText(/Készpénz/);
+    expect(screen.getByText('300.000,-')).toBeTruthy(); // 100.000 + 200.000 + 0
+    fireEvent.change(cash, { target: { value: '45000' } });
+    fireEvent.blur(cash);
+    await waitFor(() => expect(calls.find(([u, m]) => u === '/api/months/2026/4' && m === 'PATCH')?.[2]).toBe('{"cashBalance":45000}'));
   });
 });

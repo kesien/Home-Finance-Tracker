@@ -125,6 +125,7 @@ export default function MonthPage() {
   }
 
   const { summary, incomes, expenses, average } = data;
+  const totalMoney = data.month.accountBalance + data.month.savingsBalance + data.month.cashBalance;
   const catById = Object.fromEntries(categories.map((c) => [c.id, c]));
   const catTotals = Object.entries(summary.categoryTotals)
     .map(([id, total]) => ({ id: Number(id), name: catById[id]?.name ?? '?', total }))
@@ -159,6 +160,12 @@ export default function MonthPage() {
         <div className="card"><span className="muted">Hátralévő (nem fizetett)</span><strong className="big">{formatMoney(summary.unpaid)}</strong></div>
         <BalanceField label="Számlán" value={data.month.accountBalance} onSave={(v) => patchBalance({ accountBalance: v })} />
         <BalanceField label="Megtakarítás" value={data.month.savingsBalance} onSave={(v) => patchBalance({ savingsBalance: v })} />
+        <BalanceField label="Készpénz" value={data.month.cashBalance} onSave={(v) => patchBalance({ cashBalance: v })} />
+        <div className="card wide">
+          <span className="muted">Összes pénz</span>
+          <strong className={`big ${signClass(totalMoney)}`}>{formatMoney(totalMoney)}</strong>
+          <span className="hint">számlán + megtakarítás + készpénz</span>
+        </div>
       </div>
 
       <section>

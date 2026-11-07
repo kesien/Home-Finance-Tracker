@@ -40,6 +40,7 @@ export default function DashboardPage() {
   const { summary } = data;
   const catById = Object.fromEntries(categories.map((c) => [c.id, c]));
   const upcoming = upcomingExpenses(data.expenses);
+  const totalMoney = data.month.accountBalance + data.month.savingsBalance + data.month.cashBalance;
 
   return (
     <>
@@ -51,6 +52,12 @@ export default function DashboardPage() {
         <div className="card"><span className="muted">Hátralévő kiadás</span><strong className="big">{formatMoney(summary.unpaid)}</strong></div>
         <div className="card"><span className="muted">Számlán</span><strong className={`big ${signClass(data.month.accountBalance)}`}>{formatMoney(data.month.accountBalance)}</strong></div>
         <div className="card"><span className="muted">Megtakarítás</span><strong className={`big ${signClass(data.month.savingsBalance)}`}>{formatMoney(data.month.savingsBalance)}</strong></div>
+        <div className="card"><span className="muted">Készpénz</span><strong className={`big ${signClass(data.month.cashBalance)}`}>{formatMoney(data.month.cashBalance)}</strong></div>
+        <div className="card wide">
+          <span className="muted">Összes pénz</span>
+          <strong className={`big ${signClass(totalMoney)}`}>{formatMoney(totalMoney)}</strong>
+          <span className="hint">számlán + megtakarítás + készpénz</span>
+        </div>
       </div>
 
       <section>

@@ -113,7 +113,19 @@ describe('kifizetve, egyenleg, validáció', () => {
   it('egyenlegek szerkeszthetők', async () => {
     await newMonth(2026, 11);
     const r = await api.patch('/api/months/2026/11').send({ accountBalance: 500000, savingsBalance: 2000000 });
-    expect(r.body.month).toMatchObject({ accountBalance: 500000, savingsBalance: 2000000 });
+    expect(r.body.month).toMatchObject({ accountBalance: 500000, savingsBalance: 2000000, cashBalance: 0 });
+  });
+  it('a készpénz önállóan szerkeszthető, nem érinti a többi egyenleget, és az összes pénzbe beleszámít', async () => {
+    await newMonth(2026, 11);
+    await api.patch('/api/months/2026/11').send({ accountBalance: 100000, savingsBalance: 200000 });
+    const r = await api.patch('/api/months/2026/11').send({ cashBalance: 35000 });
+    expect(r.body.month).toMatchObject({ accountBalance: 100000, savingsBalance: 200000, cashBalance: 35000 });
+    const list = (await api.get('/api/months')).body[0];
+    expect([list.cashBalance, list.totalMoney]).toEqual([35000, 335000]);
+    expect((await api.patch('/api/months/2026/11').send({ cashBalance: 1.5 })).status).toBe(400);
+    expect((await api.patch('/api/months/2026/11').send({ cashBalance: 'x' })).status).toBe(400);
+    // az új hónap egyenlegei – a készpénzzel együtt – 0-ról indulnak és kézzel frissítendők
+    expect((await newMonth(2026, 12)).body.month.cashBalance).toBe(0);
   });
   it('nem egész vagy negatív összeget elutasít, éves tételhez esedékesség kell', async () => {
     await newMonth(2026, 11);
@@ -191,7 +203,7 @@ describe('statisztika', () => {
     await api.post('/api/months/2026/10/expenses').send({ name: 'Adó', amount: 99000, type: 'yearly', due_year: 2027, due_month: 1 });
     const r = (await api.get('/api/stats')).body;
     expect(r.months.map((m) => [m.year, m.month])).toEqual([[2026, 10], [2026, 11]]);
-    expect(r.months[0]).toMatchObject({ totalIncome: 800000, totalExpense: 20000, remaining: 780000 });
+    expect(r.months[0]).toMatchObject({ totalIncome: 800000, totalExpense: 20000, remaining: 780000, cashBalance: 0 });
     expect(r.months[0].incomes).toEqual([{ name: 'Apa fizu', amount: 800000 }]);
     expect(r.months[0].categoryTotals).toEqual({ [rezsi]: 20000 }); // az éves tétel nem számít bele
     expect(r.categories.length).toBe(11);
@@ -231,6 +243,12 @@ describe('előrejelzés', () => {
     const r = (await app.get('/api/forecast')).body;
     expect(r.base).toEqual({ year: 2026, month: 8 });
     expect(r.isCurrent).toBe(false);
+  });
+
+  it('a kiindulóegyenlegbe a készpénz is beleszámít', async () => {
+    await newMonth(2026, 5);
+    await api.patch('/api/months/2026/5').send({ accountBalance: 100000, savingsBalance: 200000, cashBalance: 30000 });
+    expect((await api.get('/api/forecast?year=2026&month=5')).body.startBalance).toBe(330000);
   });
 
   it('megadott alaphónap és érvénytelen paraméter', async () => {

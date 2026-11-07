@@ -113,3 +113,5 @@ table.plain thead th { color: var(--muted); }
 table.plain tbody th { text-align: left; }
 table.plain tr.below { background: #3a1d2233; }
 table.plain thead th:first-child { text-align: left; }
+/* Az „Összes pénz” kártya mindig két cellát foglal, így mobilon (2 oszlop) és asztalon (3 oszlop) sem marad üres hely. */
+.card.wide { grid-column: span 2; }
