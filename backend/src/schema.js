@@ -1,5 +1,5 @@
 // Séma-migrációk a PRAGMA user_version alapján. Új változtatás = új elem a tömb végén.
-const MIGRATIONS = [
+export const MIGRATIONS = [
   `
   CREATE TABLE categories (
     id INTEGER PRIMARY KEY,
@@ -41,6 +41,8 @@ const MIGRATIONS = [
     ('Lakás'), ('Rezsi'), ('Hitel'), ('Biztosítás'), ('Adó'), ('Gyerek'),
     ('Szépségápolás'), ('Előfizetés'), ('Állat'), ('Egészség'), ('Egyéb');
   `,
+  // 2. migráció: készpénz egyenleg havonta (a meglévő hónapok 0-ról indulnak)
+  `ALTER TABLE months ADD COLUMN cash_balance INTEGER NOT NULL DEFAULT 0;`,
 ];
 
 export function migrate(db) {

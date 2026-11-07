@@ -122,7 +122,7 @@ export function createService(db) {
     const { avgN } = getSettings();
     const hist = incomeHistory();
     return {
-      month: { id: m.id, year, month, accountBalance: m.account_balance, savingsBalance: m.savings_balance },
+      month: { id: m.id, year, month, accountBalance: m.account_balance, savingsBalance: m.savings_balance, cashBalance: m.cash_balance },
       incomes,
       expenses: expenses.map((e) => ({ ...e, paid: !!e.paid, counted: counted.has(e.id) })),
       summary,
@@ -136,7 +136,7 @@ export function createService(db) {
 
   function listMonths() {
     return db
-      .prepare('SELECT id, year, month, account_balance, savings_balance FROM months ORDER BY year DESC, month DESC')
+      .prepare('SELECT id, year, month, account_balance, savings_balance, cash_balance FROM months ORDER BY year DESC, month DESC')
       .all()
       .map((m) => {
         const s = summarize({ incomes: incomesOf(m.id), expenses: expensesOf(m.id), year: m.year, month: m.month });
@@ -145,6 +145,8 @@ export function createService(db) {
           month: m.month,
           accountBalance: m.account_balance,
           savingsBalance: m.savings_balance,
+          cashBalance: m.cash_balance,
+          totalMoney: m.account_balance + m.savings_balance + m.cash_balance,
           totalIncome: s.totalIncome,
           totalExpense: s.totalExpense,
           remaining: s.remaining,
@@ -169,7 +171,7 @@ export function createService(db) {
     const result = forecast({
       incomes: incomesOf(base.id),
       expenses: expensesOf(base.id),
-      startBalance: base.account_balance + base.savings_balance,
+      startBalance: base.account_balance + base.savings_balance + base.cash_balance, // számlán + megtakarítás + készpénz
       avgVariableIncome: avg.average,
       year: base.year,
       month: base.month,
@@ -193,6 +195,7 @@ export function createService(db) {
         remaining: sm.remaining,
         accountBalance: m.account_balance,
         savingsBalance: m.savings_balance,
+        cashBalance: m.cash_balance,
         incomes: incomes.map((i) => ({ name: i.name, amount: i.amount })),
         categoryTotals: sm.categoryTotals,
       };
@@ -229,8 +232,9 @@ export function createService(db) {
     const m = mustMonth(year, month);
     const acc = body.accountBalance ?? m.account_balance;
     const sav = body.savingsBalance ?? m.savings_balance;
-    if (!isInt(acc) || !isInt(sav)) throw bad('Az egyenleg egész szám (Ft) legyen');
-    db.prepare('UPDATE months SET account_balance = ?, savings_balance = ? WHERE id = ?').run(acc, sav, m.id);
+    const cash = body.cashBalance ?? m.cash_balance;
+    if (!isInt(acc) || !isInt(sav) || !isInt(cash)) throw bad('Az egyenleg egész szám (Ft) legyen');
+    db.prepare('UPDATE months SET account_balance = ?, savings_balance = ?, cash_balance = ? WHERE id = ?').run(acc, sav, cash, m.id);
     return monthDetail(year, month);
   }
 

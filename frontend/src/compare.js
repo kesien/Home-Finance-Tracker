@@ -2,6 +2,8 @@
  * Két hónap összehasonlítása. `a` és `b` a /api/months/:év/:hó válasz.
  * A különbség mindig b − a. Kategóriánként az összes olyan kategória szerepel, amelyik valamelyik hónapban számít.
  */
+const total = (m) => m.accountBalance + m.savingsBalance + (m.cashBalance ?? 0);
+
 export function compareMonths(a, b, categories) {
   const diff = (x, y) => y - x;
   const names = Object.fromEntries(categories.map((c) => [c.id, c.name]));
@@ -21,6 +23,8 @@ export function compareMonths(a, b, categories) {
       row('Fennmaradó', a.summary.remaining, b.summary.remaining, true),
       row('Számlán', a.month.accountBalance, b.month.accountBalance, true),
       row('Megtakarítás', a.month.savingsBalance, b.month.savingsBalance, true),
+      row('Készpénz', a.month.cashBalance ?? 0, b.month.cashBalance ?? 0, true),
+      row('Összes pénz', total(a.month), total(b.month), true),
     ],
     categories: categoryRows,
   };

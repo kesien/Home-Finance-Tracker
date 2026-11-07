@@ -21,7 +21,7 @@ describe('DashboardPage', () => {
     vi.stubGlobal('fetch', vi.fn((url) => {
       if (url === '/api/categories') return json([{ id: 1, name: 'Rezsi' }]);
       return json({
-        month: { accountBalance: -5000, savingsBalance: 200000 },
+        month: { accountBalance: -5000, savingsBalance: 200000, cashBalance: 12000 },
         incomes: [],
         expenses: [e(1, 'Villany', false, true), e(2, 'Net', true, true), e(3, 'Adó', false, false)],
         summary: { totalIncome: 900000, totalExpense: 6000, remaining: 894000, unpaid: 1000, categoryTotals: { 1: 6000 } },
@@ -34,6 +34,8 @@ describe('DashboardPage', () => {
     expect(screen.queryByText('Adó')).toBeNull();
     expect(screen.getByText('-5.000,-').className).toContain('neg');
     expect(screen.getByText('900.000,-')).toBeTruthy();
+    expect(screen.getByText('12.000,-').className).toContain('pos'); // készpénz
+    expect(screen.getByText('207.000,-')).toBeTruthy(); // összes pénz: -5000 + 200000 + 12000
     // a diagram adatai táblázatként is elérhetők
     expect(screen.getByRole('table', { name: 'Kiadások kategóriák szerint' })).toBeTruthy();
   });

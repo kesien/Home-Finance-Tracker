@@ -113,3 +113,4 @@ table.plain thead th { color: var(--muted); }
 table.plain tbody th { text-align: left; }
 table.plain tr.below { background: #3a1d2233; }
 table.plain thead th:first-child { text-align: left; }
+@media (min-width: 800px) { .card.wide { grid-column: span 2; } }
