@@ -10,12 +10,18 @@ export function nextMonth(year, month) {
 /**
  * Beleszámít-e a kiadás a megadott hónap kiadásaiba?
  * - éves tétel: csak az esedékes hónapban (teljes összeg, nincs osztás)
+ * - negyedéves tétel: az esedékes hónaptól kezdve 3 havonta (teljes összeg, nincs osztás), az opcionális lejáratig
  * - havi tétel: lejárat nélkül mindig, lejárattal a lejárati hónapig (az is fizetendő)
  */
 export function isCounted(expense, year, month) {
   const idx = monthIndex(year, month);
   if (expense.type === 'yearly') {
     return expense.due_year != null && monthIndex(expense.due_year, expense.due_month) === idx;
+  }
+  if (expense.type === 'quarterly') {
+    if (expense.due_year == null) return false;
+    const since = idx - monthIndex(expense.due_year, expense.due_month);
+    if (since < 0 || since % 3 !== 0) return false; // az első esedékesség előtt nem, utána minden 3. hónapban
   }
   if (expense.end_year == null) return true;
   return monthIndex(expense.end_year, expense.end_month) >= idx;
@@ -59,7 +65,8 @@ export function averageLastN(history, year, month, n) {
 /**
  * Mely tételek másolódnak az új hónapba?
  * - fix bevételek: igen; változók: nem
- * - havi kiadások: igen, ha a lejárat még nem múlt el (a lejárattal együtt másolódnak)
+ * - havi és negyedéves kiadások: igen, ha a lejárat még nem múlt el (a lejárattal és az esedékességgel együtt másolódnak;
+ *   a negyedéves a ciklus miatt akkor is másolódik, ha az adott hónapban éppen nem esedékes)
  * - éves kiadások: csak ha az esedékesség az új hónap vagy később (különben az előrejelzés elveszítené őket)
  * A kifizetve jelölés mindig visszaáll.
  */

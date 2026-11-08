@@ -273,7 +273,7 @@ export function createService(db) {
   function parseExpense(b) {
     reqBody(b);
     if (b.paid != null && typeof b.paid !== 'boolean') throw bad('paid: true/false kell');
-    const type = oneOf(b.type ?? 'monthly', ['monthly', 'yearly'], 'type');
+    const type = oneOf(b.type ?? 'monthly', ['monthly', 'quarterly', 'yearly'], 'type');
     const e = {
       name: reqString(b.name, 'name'),
       amount: reqAmount(b.amount),
@@ -285,11 +285,13 @@ export function createService(db) {
     if (!isInt(e.category_id) || !db.prepare('SELECT 1 FROM categories WHERE id = ?').get(e.category_id)) {
       throw bad('category_id: válassz létező kategóriát');
     }
-    if (type === 'yearly') {
+    if (type === 'yearly' || type === 'quarterly') {
+      // éves: az esedékes hónap; negyedéves: az első (vagy következő) esedékes hónap, innen 3 havonta
       reqYM(b.due_year, b.due_month, 'Esedékesség: ');
       e.due_year = b.due_year;
       e.due_month = b.due_month;
-    } else if (b.end_year != null || b.end_month != null) {
+    }
+    if (type !== 'yearly' && (b.end_year != null || b.end_month != null)) {
       reqYM(b.end_year, b.end_month, 'Lejárat: ');
       e.end_year = b.end_year;
       e.end_month = b.end_month;
@@ -318,7 +320,11 @@ export function createService(db) {
     if (!cur) throw notFound('Nincs ilyen kiadás');
     reqBody(body);
     // Típusváltásnál a másik típus mezői törlődnek (parseExpense nullázza), ezért a régi mezőket csak azonos típusnál örökítjük.
-    const base = body.type && body.type !== cur.type ? { name: cur.name, amount: cur.amount, category_id: cur.category_id, paid: cur.paid } : cur;
+    // Kivétel: a havi és a negyedéves tételnek egyaránt lehet lejárata, az átváltáskor megmarad.
+    const changed = body.type && body.type !== cur.type;
+    const base = changed
+      ? { name: cur.name, amount: cur.amount, category_id: cur.category_id, paid: cur.paid, ...(cur.type !== 'yearly' && body.type !== 'yearly' ? { end_year: cur.end_year, end_month: cur.end_month } : {}) }
+      : cur;
     const e = parseExpense({ ...base, ...body });
     db.prepare(
       `UPDATE expenses SET name=?, amount=?, type=?, category_id=?, paid=?, due_year=?, due_month=?, end_year=?, end_month=? WHERE id=?`,

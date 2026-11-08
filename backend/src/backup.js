@@ -16,6 +16,17 @@ const timeStamp = (d) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getD
  * Konzisztens másolat az élő SQLite fájlról (better-sqlite3 backup API, WAL mellett is biztonságos).
  * Előbb ideiglenes fájlba ír, és csak kész állapotban nevezi át, így félkész mentés sosem marad a könyvtárban.
  */
+/**
+ * Séma-frissítés előtti másolat (szinkron, mert még az app indulása előtt fut). A VACUUM INTO konzisztens, egyfájlos másolatot ad.
+ * Név: finance-pre-migration-v<régi>-<időbélyeg>.db; ezeket a mentés-rotáció nem törli (ritkán keletkeznek).
+ */
+export function backupBeforeMigration(db, dir, from, now = new Date()) {
+  fs.mkdirSync(dir, { recursive: true });
+  const name = `finance-pre-migration-v${from}-${timeStamp(now)}.db`;
+  db.exec(`VACUUM INTO '${path.join(dir, name).replace(/'/g, "''")}'`);
+  return name;
+}
+
 /** Leállításkor megvárjuk a futó mentést, hogy ne szakadjon félbe. */
 export const backupsIdle = () => queue;
 

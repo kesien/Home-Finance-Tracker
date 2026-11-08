@@ -17,3 +17,5 @@
 **Következmény (éves tételek):** az esedékesség után az éves tétel nem másolódik tovább, a következő évi esedékességet kézzel kell felvenni. Az előrejelzés (Fázis 5) ezért csak az aktuális hónapban felvett éves tételeket látja.
 
 **Bemenet-validáció:** az összegek biztonságos egészek, felső korlát 10^12 Ft; a hibás kérések mindig JSON `{error}` választ kapnak.
+
+**Negyedéves tétel (utólagos kiegészítés):** külön típus (`quarterly`), esedékességgel (`due_year/due_month` = az első esedékes hónap) és opcionális lejárattal. Az `isCounted` szerint az első esedékességtől 3 havonta számít bele a kiadásba, teljes összeggel. Másolásnál úgy viselkedik, mint a havi tétel (a lejáratig mindig másolódik, mert a ciklus folytatódik), így az esedékesség nélküli hónapokban is látszik, halványan, „nem esedékes” jelzéssel.

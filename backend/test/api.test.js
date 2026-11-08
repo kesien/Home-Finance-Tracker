@@ -258,3 +258,57 @@ describe('előrejelzés', () => {
     expect((await api.get('/api/forecast?year=x&month=1')).status).toBe(400);
   });
 });
+
+describe('negyedéves kiadás', () => {
+  const post = (b) => api.post('/api/months/2026/11/expenses').send({ name: 'Vízdíj', amount: 18000, ...b });
+
+  it('létrehozás esedékességgel; esedékesség nélkül 400; lejárat opcionális', async () => {
+    await newMonth(2026, 11);
+    expect((await post({ type: 'quarterly' })).status).toBe(400);
+    const r = await post({ type: 'quarterly', due_year: 2026, due_month: 12, end_year: 2028, end_month: 3 });
+    expect(r.status).toBe(201);
+    expect(r.body).toMatchObject({ type: 'quarterly', due_year: 2026, due_month: 12, end_year: 2028, end_month: 3 });
+  });
+
+  it('csak az esedékes hónapokban számít bele a kiadásba, a counted jelző szerint', async () => {
+    await newMonth(2026, 11);
+    await post({ type: 'quarterly', due_year: 2026, due_month: 12 });
+    expect((await api.get('/api/months/2026/11')).body.summary.totalExpense).toBe(0);
+    const dec = (await newMonth(2026, 12)).body; // másolódik
+    expect(dec.expenses[0]).toMatchObject({ type: 'quarterly', counted: true, paid: false });
+    expect(dec.summary.totalExpense).toBe(18000);
+    const jan = (await newMonth(2027, 1)).body;
+    expect([jan.expenses[0].counted, jan.summary.totalExpense]).toEqual([false, 0]);
+    expect((await newMonth(2027, 3)).body.summary.totalExpense).toBe(18000);
+  });
+
+  it('havi ↔ negyedéves átváltás megőrzi a lejáratot, az éves átváltás törli', async () => {
+    await newMonth(2026, 11);
+    const m = (await post({ type: 'monthly', end_year: 2027, end_month: 5 })).body;
+    const q = (await api.patch(`/api/expenses/${m.id}`).send({ type: 'quarterly', due_year: 2026, due_month: 12 })).body;
+    expect([q.type, q.end_year, q.end_month, q.due_month]).toEqual(['quarterly', 2027, 5, 12]);
+    const back = (await api.patch(`/api/expenses/${m.id}`).send({ type: 'monthly' })).body;
+    expect([back.type, back.end_year, back.due_year]).toEqual(['monthly', 2027, null]);
+    const y = (await api.patch(`/api/expenses/${m.id}`).send({ type: 'yearly', due_year: 2027, due_month: 2 })).body;
+    expect([y.type, y.end_year]).toEqual(['yearly', null]);
+  });
+
+  it('az előrejelzésben negyedévente szerepel, az export kezeli, az import visszatölti', async () => {
+    await newMonth(2026, 11);
+    await post({ type: 'quarterly', due_year: 2026, due_month: 12 });
+    const app = request(createApp({ db, now: () => new Date(2026, 10, 15) }));
+    const f = (await app.get('/api/forecast')).body;
+    expect(f.rows.filter((r) => r.expense > 0)).toHaveLength(4);
+    const exported = (await api.get('/api/export')).body;
+    expect(exported.months[0].expenses[0]).toMatchObject({ type: 'quarterly', dueYear: 2026, dueMonth: 12 });
+    const db2 = openDb(':memory:');
+    const api2 = request(createApp({ db: db2 }));
+    expect((await api2.post('/api/import').send(exported)).status).toBe(200);
+    expect((await api2.get('/api/months/2026/11')).body.expenses[0]).toMatchObject({ type: 'quarterly', due_year: 2026, due_month: 12 });
+    // negyedéves tétel esedékesség nélkül az importban érvénytelen
+    const bad = structuredClone(exported);
+    delete bad.months[0].expenses[0].dueYear;
+    expect((await api2.post('/api/import').send(bad)).status).toBe(400);
+    db2.close();
+  });
+});

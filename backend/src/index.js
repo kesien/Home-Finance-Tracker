@@ -2,7 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openDb } from './db.js';
 import { createApp } from './app.js';
-import { startBackupScheduler, backupsIdle } from './backup.js';
+import { startBackupScheduler, backupsIdle, backupBeforeMigration } from './backup.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT ?? 3000);
@@ -10,7 +10,10 @@ const dbFile = process.env.DB_FILE ?? path.resolve(here, '../../data/finance.db'
 const backupDir = process.env.BACKUP_DIR ?? path.resolve(here, '../../data/backups');
 const staticDir = process.env.STATIC_DIR ?? path.resolve(here, '../../frontend/dist');
 
-const db = openDb(dbFile);
+const db = openDb(dbFile, {
+  // Meglévő adatbázis séma-frissítése előtt másolat (a migráció tábla-újraépítést is végezhet).
+  beforeUpgrade: (conn, from) => console.log(`Séma-frissítés előtti mentés: ${backupBeforeMigration(conn, backupDir, from)}`),
+});
 const server = createApp({ db, staticDir, backupDir }).listen(port, '0.0.0.0', () =>
   console.log(`Szerver: http://0.0.0.0:${port}`),
 );

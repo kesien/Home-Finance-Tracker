@@ -69,7 +69,7 @@ export default function DashboardPage() {
                 <span>{e.name}</span>
                 <span className="muted small block">
                   <span className="dot" style={{ background: categoryColor(e.category_id) }} />{catById[e.category_id]?.name}
-                  {e.type === 'yearly' ? ' · éves, ebben a hónapban esedékes' : ''}
+                  {e.type === 'yearly' ? ' · éves, ebben a hónapban esedékes' : e.type === 'quarterly' ? ' · negyedéves, ebben a hónapban esedékes' : ''}
                 </span>
               </span>
               <strong>{formatMoney(e.amount)}</strong>

@@ -55,7 +55,7 @@ export default function ForecastPage() {
       <h1>Előrejelzés</h1>
       <p className="muted small">
         Kiindulópont: {monthLabel(data.base.year, data.base.month)} számlán + megtakarítás + készpénz egyenlege. Havi bevétel = fix bevételek + a változó bevételek átlaga
-        (utolsó {data.avgN} hónap, {data.monthsUsed} hónap alapján). Kiadás = az alaphónap fix havi tételei (lejáratukig) + az adott hónapban esedékes éves tételek.
+        (utolsó {data.avgN} hónap, {data.monthsUsed} hónap alapján). Kiadás = az alaphónap fix havi tételei (lejáratukig) + az adott hónapban esedékes negyedéves és éves tételek.
       </p>
 
       {!data.isCurrent && (
