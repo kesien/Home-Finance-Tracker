@@ -97,7 +97,7 @@ Megjegyzés: a Compose named volume-ot használ. Ha mégis bind mounttal (`./ada
 git pull
 docker compose up -d --build
 ```
-Az adat a volume-ban marad; az adatbázis-séma automatikusan frissül (verziózott migrációk).
+Az adat a volume-ban marad; az adatbázis-séma automatikusan frissül (verziózott migrációk). Séma-frissítés előtt az app másolatot készít a meglévő adatbázisról a `backups/` könyvtárba (`finance-pre-migration-v<régi verzió>-….db`); ezeket nem törli automatikusan, a frissítés utáni ellenőrzés után kézzel törölhetők.
 
 ## Hibaelhárítás
 

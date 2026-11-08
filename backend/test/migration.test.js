@@ -43,3 +43,37 @@ describe('séma-migráció', () => {
     expect(db.prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_expenses_month'").get()).toBeTruthy();
   });
 });
+
+describe('mentés a séma-frissítés előtt', () => {
+  it('meglévő adatbázison a hook még a módosítás előtt lefut, és a másolat a régi sémát tartalmazza', async () => {
+    const fs = await import('node:fs');
+    const os = await import('node:os');
+    const path = await import('node:path');
+    const { openDb } = await import('../src/db.js');
+    const { backupBeforeMigration } = await import('../src/backup.js');
+    const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'mig-'));
+    const file = path.join(tmp, 'f.db');
+    const old = new Database(file);
+    for (let i = 0; i < 2; i++) old.exec(MIGRATIONS[i]);
+    old.pragma('user_version = 2');
+    old.prepare('INSERT INTO months (year, month) VALUES (2026, 10)').run();
+    old.close();
+
+    let copy;
+    const db = openDb(file, { beforeUpgrade: (conn, from) => { copy = backupBeforeMigration(conn, path.join(tmp, 'b'), from); } });
+    expect(copy).toMatch(/^finance-pre-migration-v2-/);
+    expect(db.pragma('user_version', { simple: true })).toBe(MIGRATIONS.length);
+    const saved = new Database(path.join(tmp, 'b', copy), { readonly: true });
+    expect(saved.pragma('user_version', { simple: true })).toBe(2); // a régi állapot
+    expect(saved.prepare('SELECT COUNT(*) n FROM months').get().n).toBe(1);
+    saved.close();
+    db.close();
+
+    // már friss adatbázison, illetve új (üres) adatbázison nincs felesleges másolat
+    let calls = 0;
+    openDb(file, { beforeUpgrade: () => calls++ }).close();
+    openDb(path.join(tmp, 'new.db'), { beforeUpgrade: () => calls++ }).close();
+    expect(calls).toBe(0);
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+});

@@ -293,7 +293,7 @@ describe('negyedéves kiadás', () => {
     expect([y.type, y.end_year]).toEqual(['yearly', null]);
   });
 
-  it('az előrejelzésben negyedévente, a stats és az export is kezeli, az import visszatölti', async () => {
+  it('az előrejelzésben negyedévente szerepel, az export kezeli, az import visszatölti', async () => {
     await newMonth(2026, 11);
     await post({ type: 'quarterly', due_year: 2026, due_month: 12 });
     const app = request(createApp({ db, now: () => new Date(2026, 10, 15) }));

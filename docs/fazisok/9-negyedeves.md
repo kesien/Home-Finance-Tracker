@@ -16,3 +16,7 @@
 ## Kimaradt / későbbre
 - Más gyakoriságok (kéthavi, féléves): a szabály általánosítható egy `időköz` mezővel, de most nem kellett.
 - A negyedéves tétel „kifizetve” jelölése hónaponként külön van (a másolt sorokban újra kikapcsol), ahogy a havi tételeknél.
+
+## Review után
+- **Séma-frissítés előtti másolat:** ha az app induláskor egy meglévő adatbázist kell frissítsen (pl. ez a 3. migráció, amely táblát épít újra), előbb `VACUUM INTO`-val másolatot készít a `backups/` könyvtárba (`finance-pre-migration-v<régi>-….db`). Üres vagy már friss adatbázison nem készül. Teszt: `migration.test.js`.
+- Ismert (Nit): éves ↔ negyedéves átváltásnál az esedékességet a kérésnek tartalmaznia kell (a felület mindig küldi); API-ból esedékesség nélkül 400.

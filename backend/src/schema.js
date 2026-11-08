@@ -67,8 +67,13 @@ export const MIGRATIONS = [
   `,
 ];
 
-export function migrate(db) {
+/**
+ * Séma-frissítés. `beforeUpgrade(from, to)` akkor hívódik, ha egy MEGLÉVŐ (nem üres) adatbázist kell frissíteni,
+ * még az első módosítás előtt – itt lehet másolatot készíteni (egy hibás migráció ellen).
+ */
+export function migrate(db, { beforeUpgrade } = {}) {
   const current = db.pragma('user_version', { simple: true });
+  if (current > 0 && current < MIGRATIONS.length) beforeUpgrade?.(current, MIGRATIONS.length);
   for (let v = current; v < MIGRATIONS.length; v++) {
     db.transaction(() => {
       db.exec(MIGRATIONS[v]);
