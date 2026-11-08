@@ -137,3 +137,49 @@ describe('forecast', () => {
     expect(forecast({ ...base, incomes: [], expenses: [] }).rows[1]).toMatchObject({ year: 2027, month: 1 });
   });
 });
+
+describe('negyedéves tétel', () => {
+  const q = (o = {}) => ({ id: 9, type: 'quarterly', amount: 30000, category_id: 1, paid: 0, due_year: 2026, due_month: 12, ...o });
+
+  it('az első esedékességtől 3 havonta számít, teljes összeggel, előtte nem', () => {
+    const counted = [[2026, 9, false], [2026, 11, false], [2026, 12, true], [2027, 1, false], [2027, 2, false], [2027, 3, true], [2027, 6, true], [2027, 9, true], [2027, 12, true], [2028, 3, true]];
+    for (const [y, m, expected] of counted) expect(isCounted(q(), y, m), `${y}.${m}`).toBe(expected);
+  });
+
+  it('évhatáron átnyúló ciklus (nov → feb → máj → aug)', () => {
+    const e = q({ due_year: 2026, due_month: 11 });
+    expect([[2027, 2], [2027, 5], [2027, 8], [2027, 11]].every(([y, m]) => isCounted(e, y, m))).toBe(true);
+    expect(isCounted(e, 2027, 1)).toBe(false);
+  });
+
+  it('a lejáratig (azt beleértve) számít', () => {
+    const e = q({ end_year: 2027, end_month: 6 });
+    expect(isCounted(e, 2027, 6)).toBe(true);
+    expect(isCounted(e, 2027, 9)).toBe(false);
+  });
+
+  it('az összesítésben egyszer számít, az esedékes hónapban', () => {
+    const s1 = summarize({ incomes: [], expenses: [q()], year: 2027, month: 3 });
+    expect(s1.totalExpense).toBe(30000);
+    expect(summarize({ incomes: [], expenses: [q()], year: 2027, month: 2 }).totalExpense).toBe(0);
+  });
+
+  it('új hónapba másolódik (a ciklus miatt), kivéve ha a lejárat elmúlt; a paid törlődik', () => {
+    const keep = q({ id: 1, paid: 1 });
+    const expired = q({ id: 2, end_year: 2026, end_month: 11 });
+    const r = itemsToCopy({ incomes: [], expenses: [keep, expired] }, 2026, 12).expenses;
+    expect(r.map((e) => e.id)).toEqual([1]);
+    expect(r[0].paid).toBe(0);
+    expect([r[0].due_year, r[0].due_month]).toEqual([2026, 12]);
+  });
+
+  it('az előrejelzésben a 12 hónapba pontosan 4 alkalom esik (egyszer sem dupla)', () => {
+    const r = forecast({ incomes: [], expenses: [q({ due_year: 2026, due_month: 12 })], startBalance: 0, avgVariableIncome: 0, year: 2026, month: 11 });
+    expect(r.rows.map((x) => x.expense)).toEqual([30000, 0, 0, 30000, 0, 0, 30000, 0, 0, 30000, 0, 0]);
+  });
+
+  it('az előrejelzésben a lejárat után nem szerepel', () => {
+    const r = forecast({ incomes: [], expenses: [q({ end_year: 2027, end_month: 3 })], startBalance: 0, avgVariableIncome: 0, year: 2026, month: 11 });
+    expect(r.rows.filter((x) => x.expense > 0).map((x) => [x.year, x.month])).toEqual([[2026, 12], [2027, 3]]);
+  });
+});

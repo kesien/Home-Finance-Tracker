@@ -199,7 +199,8 @@ export default function MonthPage() {
                   <span className="dot" style={{ background: categoryColor(e.category_id) }} />
                   {catById[e.category_id]?.name}
                   {e.type === 'yearly' && ` · éves, esedékes: ${monthLabel(e.due_year, e.due_month)}${e.counted ? '' : ' (ebben a hónapban nem számít)'}`}
-                  {e.type === 'monthly' && e.end_year != null && ` · lejár: ${monthLabel(e.end_year, e.end_month)}`}
+                  {e.type === 'quarterly' && ` · negyedéves, 3 havonta (első: ${monthLabel(e.due_year, e.due_month)})${e.counted ? '' : ' – ebben a hónapban nem esedékes'}`}
+                  {e.type !== 'yearly' && e.end_year != null && ` · lejár: ${monthLabel(e.end_year, e.end_month)}`}
                 </span>
                 </span>
                 <strong>{formatMoney(e.amount)}</strong>

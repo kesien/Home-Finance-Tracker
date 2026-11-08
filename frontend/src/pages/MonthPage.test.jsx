@@ -127,4 +127,36 @@ describe('MonthPage', () => {
     fireEvent.blur(cash);
     await waitFor(() => expect(calls.find(([u, m]) => u === '/api/months/2026/4' && m === 'PATCH')?.[2]).toBe('{"cashBalance":45000}'));
   });
+
+  it('negyedéves tétel felvétele: esedékességet küld, lejárat nélkül null lejárattal', async () => {
+    const calls = [];
+    vi.stubGlobal('fetch', vi.fn((url, opts = {}) => {
+      calls.push([url, opts.method, opts.body]);
+      return json(url === '/api/categories' ? cats : opts.method === 'POST' ? {} : detail(4, null));
+    }));
+    mount('/honap/2026/4');
+    await screen.findByText('Még nincs bevétel.');
+    fireEvent.click(screen.getAllByText('+ Új')[1]);
+    fireEvent.change(screen.getByLabelText('Név'), { target: { value: 'Vízdíj' } });
+    fireEvent.change(screen.getByLabelText('Összeg (Ft)'), { target: { value: '18000' } });
+    fireEvent.click(screen.getByText('Negyedéves'));
+    expect(screen.getByText(/Első esedékesség/)).toBeTruthy();
+    expect(screen.getByText('Lejárat')).toBeTruthy(); // a negyedéves tételnek lehet lejárata
+    fireEvent.change(screen.getByLabelText('Esedékesség éve'), { target: { value: '2026' } });
+    fireEvent.click(screen.getByText('Mentés'));
+    await waitFor(() => expect(calls.some(([u, m]) => u === '/api/months/2026/4/expenses' && m === 'POST')).toBe(true));
+    const body = JSON.parse(calls.find(([u, m]) => u === '/api/months/2026/4/expenses' && m === 'POST')[2]);
+    expect(body).toMatchObject({ type: 'quarterly', due_year: 2026, due_month: 4, end_year: null, end_month: null, amount: 18000 });
+  });
+
+  it('a havi tételnél nincs esedékesség mező, az évesnél nincs lejárat', async () => {
+    vi.stubGlobal('fetch', vi.fn((url) => json(url === '/api/categories' ? cats : detail(4, null))));
+    mount('/honap/2026/4');
+    await screen.findByText('Még nincs bevétel.');
+    fireEvent.click(screen.getAllByText('+ Új')[1]);
+    expect(screen.queryByLabelText('Esedékesség éve')).toBeNull();
+    fireEvent.click(screen.getByText('Éves'));
+    expect(screen.getByLabelText('Esedékesség éve')).toBeTruthy();
+    expect(screen.queryByText('Lejárat')).toBeNull();
+  });
 });

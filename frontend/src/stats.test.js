@@ -34,5 +34,7 @@ describe('stats', () => {
       { id: 5, type: 'monthly', amount: 800, counted: true, paid: false },
     ];
     expect(upcomingExpenses(e).map((x) => x.id)).toEqual([3, 5, 1]);
+    const withQuarterly = [...e, { id: 6, type: 'quarterly', amount: 50, counted: true, paid: false }];
+    expect(upcomingExpenses(withQuarterly).map((x) => x.id)).toEqual([3, 6, 5, 1]); // az időszakos (éves/negyedéves) tételek elöl
   });
 });

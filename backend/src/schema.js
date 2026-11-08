@@ -43,6 +43,28 @@ export const MIGRATIONS = [
   `,
   // 2. migráció: készpénz egyenleg havonta (a meglévő hónapok 0-ról indulnak)
   `ALTER TABLE months ADD COLUMN cash_balance INTEGER NOT NULL DEFAULT 0;`,
+  // 3. migráció: új kiadástípus ('quarterly' – negyedéves). SQLite-ban a CHECK nem módosítható, ezért a tábla újraépül
+  // (az azonosítók és minden adat megmarad; más tábla nem hivatkozik az expenses-re).
+  `
+  CREATE TABLE expenses_new (
+    id INTEGER PRIMARY KEY,
+    month_id INTEGER NOT NULL REFERENCES months(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    amount INTEGER NOT NULL CHECK (amount >= 0),
+    type TEXT NOT NULL CHECK (type IN ('monthly', 'quarterly', 'yearly')),
+    category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
+    paid INTEGER NOT NULL DEFAULT 0 CHECK (paid IN (0, 1)),
+    due_year INTEGER,   -- éves és negyedéves tételnél: esedékesség (negyedévesnél az első fizetés hónapja)
+    due_month INTEGER,
+    end_year INTEGER,   -- havi és negyedéves tételnél, opcionális: utolsó fizetendő hónap
+    end_month INTEGER
+  );
+  INSERT INTO expenses_new (id, month_id, name, amount, type, category_id, paid, due_year, due_month, end_year, end_month)
+    SELECT id, month_id, name, amount, type, category_id, paid, due_year, due_month, end_year, end_month FROM expenses;
+  DROP TABLE expenses;
+  ALTER TABLE expenses_new RENAME TO expenses;
+  CREATE INDEX idx_expenses_month ON expenses(month_id);
+  `,
 ];
 
 export function migrate(db) {

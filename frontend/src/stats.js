@@ -33,9 +33,12 @@ export function categoryBreakdown(categoryTotals, categories) {
     .sort((a, b) => b.value - a.value);
 }
 
-/** Közelgő kiadások: ebben a hónapban beleszámító, még ki nem fizetett tételek; az éves (esedékes) elöl. */
+/** Közelgő kiadások: ebben a hónapban beleszámító, még ki nem fizetett tételek; az éves és negyedéves (esedékes) elöl. */
 export function upcomingExpenses(expenses) {
   return expenses
     .filter((e) => e.counted && !e.paid)
-    .sort((a, b) => (a.type === b.type ? b.amount - a.amount : a.type === 'yearly' ? -1 : 1));
+    .sort((a, b) => {
+      const periodic = (e) => e.type !== 'monthly';
+      return periodic(a) === periodic(b) ? b.amount - a.amount : periodic(a) ? -1 : 1;
+    });
 }

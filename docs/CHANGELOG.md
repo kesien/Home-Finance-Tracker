@@ -31,3 +31,6 @@
 
 ## 2026-11-07
 - Készpénz egyenleg: új havi mező (migrációval), „Összes pénz” kártyák, az előrejelzés kiindulóegyenlege és az export/import is tartalmazza.
+
+## 2026-11-08
+- Negyedéves kiadástípus (3 havonta ismétlődő, lejárattal), séma-migráció, előrejelzés, export/import és felület.

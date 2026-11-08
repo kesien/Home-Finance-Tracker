@@ -79,14 +79,15 @@ export function validateImport(data) {
       const f = `${at}.expenses[${j}]`;
       if (!isObj(x)) throw bad(`${f}: objektum kell`);
       if (!isInt(x.amount) || x.amount < 0) throw bad(`${f}: amount`);
-      if (!['monthly', 'yearly'].includes(x.type)) throw bad(`${f}: type`);
+      if (!['monthly', 'quarterly', 'yearly'].includes(x.type)) throw bad(`${f}: type`);
       const category = str(x.category, `${f}.category`);
       if (!seen.has(category.toLowerCase()) && category.toLowerCase() !== 'egyéb') throw bad(`${f}: ismeretlen kategória (${category})`);
       const e = { name: str(x.name, `${f}.name`), amount: x.amount, type: x.type, category, paid: x.paid === true, dueYear: null, dueMonth: null, endYear: null, endMonth: null };
-      if (x.type === 'yearly') {
+      if (x.type === 'yearly' || x.type === 'quarterly') {
         ym(x.dueYear, x.dueMonth, `${f} esedékesség`);
         Object.assign(e, { dueYear: x.dueYear, dueMonth: x.dueMonth });
-      } else if (x.endYear != null || x.endMonth != null) {
+      }
+      if (x.type !== 'yearly' && (x.endYear != null || x.endMonth != null)) {
         ym(x.endYear, x.endMonth, `${f} lejárat`);
         Object.assign(e, { endYear: x.endYear, endMonth: x.endMonth });
       }

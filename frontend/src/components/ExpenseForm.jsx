@@ -36,13 +36,16 @@ export default function ExpenseForm({ initial, categories, year, month, onCatego
     if (!name.trim()) return setError('Add meg a nevet');
     if (value === null) return setError('Az összeg egész szám legyen (Ft)');
     const yearOk = (y) => Number.isInteger(Number(y)) && Number(y) >= 2000 && Number(y) <= 2100;
-    if (type === 'yearly' && !yearOk(dueYear)) return setError('Az esedékesség éve 2000 és 2100 közötti legyen');
-    if (type === 'monthly' && hasEnd && !yearOk(endYear)) return setError('A lejárat éve 2000 és 2100 közötti legyen');
+    if (type !== 'monthly' && !yearOk(dueYear)) return setError('Az esedékesség éve 2000 és 2100 közötti legyen');
+    if (type !== 'yearly' && hasEnd && !yearOk(endYear)) return setError('A lejárat éve 2000 és 2100 közötti legyen');
     if (!categoryId) return setError('Válassz kategóriát');
     const body = { name: name.trim(), amount: value, type, category_id: Number(categoryId) };
-    if (type === 'yearly') Object.assign(body, { due_year: Number(dueYear), due_month: Number(dueMonth) });
-    else if (hasEnd) Object.assign(body, { end_year: Number(endYear), end_month: Number(endMonth) });
-    else Object.assign(body, { end_year: null, end_month: null }); // meglévő lejárat törlése
+    // Éves és negyedéves tételnél esedékesség kell; havi és negyedéves tételnél opcionális a lejárat.
+    if (type !== 'monthly') Object.assign(body, { due_year: Number(dueYear), due_month: Number(dueMonth) });
+    if (type !== 'yearly') {
+      if (hasEnd) Object.assign(body, { end_year: Number(endYear), end_month: Number(endMonth) });
+      else Object.assign(body, { end_year: null, end_month: null }); // meglévő lejárat törlése
+    }
     if (saving) return;
     setSaving(true);
     try {
@@ -77,6 +80,7 @@ export default function ExpenseForm({ initial, categories, year, month, onCatego
         <label>Összeg (Ft)<input inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="25000" /></label>
         <div className="seg" role="group" aria-label="Típus">
           <button type="button" className={type === 'monthly' ? 'on' : ''} onClick={() => setType('monthly')}>Havi</button>
+          <button type="button" className={type === 'quarterly' ? 'on' : ''} onClick={() => setType('quarterly')}>Negyedéves</button>
           <button type="button" className={type === 'yearly' ? 'on' : ''} onClick={() => setType('yearly')}>Éves</button>
         </div>
         <label>Kategória
@@ -91,14 +95,15 @@ export default function ExpenseForm({ initial, categories, year, month, onCatego
             <button type="button" className="btn" onClick={addCategory}>Hozzáad</button>
           </div>
         )}
-        {type === 'yearly' ? (
-          <fieldset><legend>Esedékes</legend>
+        {type !== 'monthly' && (
+          <fieldset><legend>{type === 'quarterly' ? 'Első esedékesség (innen 3 havonta)' : 'Esedékes'}</legend>
             <div className="row">
-              <input type="number" value={dueYear} onChange={(e) => setDueYear(e.target.value)} />
+              <input type="number" aria-label="Esedékesség éve" value={dueYear} onChange={(e) => setDueYear(e.target.value)} />
               {monthSelect(dueMonth, setDueMonth)}
             </div>
           </fieldset>
-        ) : (
+        )}
+        {type !== 'yearly' && (
           <fieldset><legend>Lejárat</legend>
             <label className="check"><input type="checkbox" checked={hasEnd} onChange={(e) => setHasEnd(e.target.checked)} /> Van lejárata (pl. hitel utolsó hónapja)</label>
             {hasEnd && (
